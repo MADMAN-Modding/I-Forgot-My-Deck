@@ -1,3 +1,4 @@
 *.sqlite
 Cargo.lock
 target
+deck.txt
