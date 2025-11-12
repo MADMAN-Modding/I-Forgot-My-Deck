@@ -12,7 +12,6 @@ async fn main() {
     constants::setup();
 
     let deck = parse_deck::read_deck_file("deck.txt").expect("Failed to read deck file");
-    deck.list_cards();
     
     let db = database::start_db().await;
 

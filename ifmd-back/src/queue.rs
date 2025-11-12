@@ -12,13 +12,11 @@ pub struct QueueManager {
 
 impl QueueManager {
     pub fn new() -> Self {
-
         let cell = OnceCell::new();
-        cell.set(Arc::new(Mutex::new(Vec::<QueueTask>::new()))).unwrap();
+        cell.set(Arc::new(Mutex::new(Vec::<QueueTask>::new())))
+            .unwrap();
 
-        Self {
-            queue: cell,
-        }
+        Self { queue: cell }
     }
 
     pub async fn push_back(&self, task: QueueTask) {
@@ -69,18 +67,22 @@ pub fn next_queue_item(queue: &mut Vec<QueueTask>) -> Option<QueueTask> {
 pub async fn manage_queue(state: Arc<state::AppState>) {
     loop {
         let queue_manager = &state.fetch_queue;
-        
+
         if queue_manager.queue.get().unwrap().lock().await.is_empty() {
             thread::sleep(std::time::Duration::from_millis(QUEUE_DELAY_MS));
         } else {
-            println!("Queue has {} items", queue_manager.queue.get().unwrap().lock().await.len());
-            let task = next_queue_item(&mut queue_manager.queue.get().unwrap().lock().await.to_vec());
+            // println!(
+            //     "Queue has {} items",
+            //     queue_manager.queue.get().unwrap().lock().await.len()
+            // );
+            let task =
+                next_queue_item(&mut queue_manager.queue.get().unwrap().lock().await.to_vec());
             match task {
                 Some(task) => {
-                    println!(
-                        "Processing queue task: {} - {} - {}",
-                        task.queue_type, task.identifier, task.set
-                    );
+                    // println!(
+                    //     "Processing queue task: {} - {} - {}",
+                    //     task.queue_type, task.identifier, task.set
+                    // );
                     match task.queue_type {
                         QueueType::ArtIDLookup => {
                             match cache::get_or_fetch_card_by_id(&task.identifier, &state).await {
@@ -100,8 +102,12 @@ pub async fn manage_queue(state: Arc<state::AppState>) {
                         }
                         QueueType::ArtNameLookup => {
                             // Handle Card Art Lookup
-                            match cache::get_or_fetch_card_by_exact_name(&task.identifier, &task.set, &state)
-                                .await
+                            match cache::get_or_fetch_card_by_exact_name(
+                                &task.identifier,
+                                &task.set,
+                                &state,
+                            )
+                            .await
                             {
                                 Ok(card) => {
                                     // Successfully processed Name Lookup

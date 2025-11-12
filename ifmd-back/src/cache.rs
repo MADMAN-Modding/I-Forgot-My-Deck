@@ -37,7 +37,11 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
     if database::check_card_exists_by_name(card_name, set, &state.database).await {
         let card_id = database::get_card_id_from_name(&state.database, card_name).await;
 
-        return Ok(database::get_card_by_id(&state.database, &card_id).await);
+        let mut card = database::get_card_by_id(&state.database, &card_id).await;
+
+        card.card_url = build_path(&card.card_id).await?;
+
+        return Ok(card);
     }
 
     let client = reqwest::Client::builder()
@@ -82,7 +86,7 @@ async fn check_card_downloaded(id: &str) -> bool {
     path.exists()
 }
 
-async fn build_path(id: &str) -> Result<String, anyhow::Error> {
+pub async fn build_path(id: &str) -> Result<String, anyhow::Error> {
     // Create directory split for first 2 hex chars of the UUID
     let prefix = &id[0..2];
 
