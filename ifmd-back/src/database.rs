@@ -54,13 +54,14 @@ pub async fn start_db() -> Pool<Sqlite> {
 pub async fn input_card(database: &Pool<Sqlite>, card: &Card) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
-        INSERT INTO card_name_to_id_cache (card_name, card_id, card_url)
-        VALUES (?1, ?2, ?3)
+        INSERT INTO card_name_to_id_cache (card_name, card_id, card_url, card_set)
+        VALUES (?1, ?2, ?3, ?4)
         "#
     )
     .bind(&card.card_name.to_lowercase())
     .bind(&card.card_id)
     .bind(&card.card_url)
+    .bind(&card.card_set)
     .execute(&*database)
     .await?;
 

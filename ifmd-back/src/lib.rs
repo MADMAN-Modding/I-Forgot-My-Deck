@@ -9,5 +9,6 @@ pub mod routes {
     pub mod ws;
 }
 
-pub mod state;
+pub mod parse_deck;
 pub mod queue;
+pub mod state;

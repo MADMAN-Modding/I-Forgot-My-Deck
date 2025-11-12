@@ -1,5 +1,5 @@
 use axum::{Router, routing::get};
-use ifmd_back::{constants, database, routes::{
+use ifmd_back::{constants, database, parse_deck, routes::{
         cards::{get_card_by_exact_name, get_card_by_id},
         ws::ws_handler,
     }, state
@@ -11,6 +11,8 @@ use tower_http::cors::CorsLayer;
 async fn main() {
     constants::setup();
 
+    parse_deck::read_deck_file("deck.txt").expect("Failed to read deck file");
+    
     let db = database::start_db().await;
 
     let app_state = Arc::new(state::AppState::new(db));
@@ -24,7 +26,7 @@ async fn main() {
     // Define your router
     let app = Router::new()
         .route("/api/cards/id/:id", get(get_card_by_id))
-        .route("/api/cards/name/:name", get(get_card_by_exact_name))
+        .route("/api/cards/name/:card_name/:card_set", get(get_card_by_exact_name))
         .route("/ws", get(ws_handler))
         .layer(CorsLayer::permissive())
         .with_state(app_state);

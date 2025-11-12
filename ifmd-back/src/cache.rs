@@ -9,7 +9,7 @@ pub async fn get_or_fetch_card_by_id(card_id: &str, _state: &Arc<AppState>) -> R
     let file_path = build_path(card_id).await?;
     let path = PathBuf::from(&file_path);
     if path.exists() {
-        return Ok(Card::new(card_id.to_string(), card_id.to_string(), file_path));
+        return Ok(Card::new(card_id.to_string(), card_id.to_string(), file_path, None));
     }
 
     let client = reqwest::Client::builder()
@@ -29,10 +29,10 @@ pub async fn get_or_fetch_card_by_id(card_id: &str, _state: &Arc<AppState>) -> R
     
     download_image(img_url, &file_path, card_id).await?;
 
-    Ok(Card::new(card_id.to_string(), card_id.to_string(), img_url.to_string()))
+    Ok(Card::new(card_id.to_string(), card_id.to_string(), img_url.to_string(), None))
 }
 
-pub async fn get_or_fetch_card_by_exact_name(card_name: &str, state: &Arc<AppState>) -> Result<Card, anyhow::Error> {
+pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: &Arc<AppState>) -> Result<Card, anyhow::Error> {
     
     if database::check_card_exists_by_name_or_id(card_name, &state.database).await {
         let card_id = database::get_card_id_from_name(&state.database, card_name).await;
@@ -45,7 +45,7 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, state: &Arc<AppSta
         .build()?;
 
     // Fetch metadata from Scryfall API
-    let url = format!("https://api.scryfall.com/cards/named?exact={card_name}");
+    let url = format!("https://api.scryfall.com/cards/named?exact={card_name}&set={set}");
     let res = client
         .get(&url)
         .header(USER_AGENT, "I-Forgot-My-Deck/0.1")
@@ -55,7 +55,9 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, state: &Arc<AppSta
 
     let card_id = res["id"].as_str().ok_or_else(|| anyhow::anyhow!("No id for card: {card_name}"))?;
     
-    let card = Card::new(card_name.to_string(), card_id.to_string(), res["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No image for card: {card_name}"))?.to_string());
+    let card_img_path = res["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No image for card: {card_name}"))?;
+
+    let card = Card::new(card_name.to_string(), card_id.to_string(), card_img_path.to_string(), Some(set.to_string()));
 
     let file_path = build_path(card_id).await?;
     download_image(&card.card_url, &file_path, card_id).await?;

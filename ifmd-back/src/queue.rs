@@ -33,6 +33,8 @@ pub struct QueueTask {
     pub queue_type: QueueType,
     /// The identifier for the task (card ID or name)
     pub identifier: String,
+    /// The set for the task (optional, used for name lookups)
+    pub set: String,
 }
 
 #[derive(Clone)]
@@ -76,14 +78,15 @@ pub async fn manage_queue(state: Arc<state::AppState>) {
             match task {
                 Some(task) => {
                     println!(
-                        "Processing queue task: {} - {}",
-                        task.queue_type, task.identifier
+                        "Processing queue task: {} - {} - {}",
+                        task.queue_type, task.identifier, task.set
                     );
                     match task.queue_type {
                         QueueType::ArtIDLookup => {
                             match cache::get_or_fetch_card_by_id(&task.identifier, &state).await {
-                                Ok(_) => {
+                                Ok(card) => {
                                     // Successfully processed ID Lookup
+                                    println!("Fetched card by ID: {}", card);
                                     // !todo!("Handle successful ID Lookup");
                                 }
                                 Err(err) => {
@@ -97,11 +100,12 @@ pub async fn manage_queue(state: Arc<state::AppState>) {
                         }
                         QueueType::ArtNameLookup => {
                             // Handle Card Art Lookup
-                            match cache::get_or_fetch_card_by_exact_name(&task.identifier, &state)
+                            match cache::get_or_fetch_card_by_exact_name(&task.identifier, &task.set, &state)
                                 .await
                             {
-                                Ok(_) => {
+                                Ok(card) => {
                                     // Successfully processed Name Lookup
+                                    println!("Fetched card by Name: {}", card);
                                     // !todo!("Handle successful Name Lookup");
                                 }
                                 Err(err) => {
@@ -115,8 +119,8 @@ pub async fn manage_queue(state: Arc<state::AppState>) {
                     }
 
                     println!(
-                        "Finished queue task: {} - {}",
-                        task.queue_type, task.identifier
+                        "Finished queue task: {} - {} - {}",
+                        task.queue_type, task.identifier, task.set
                     );
 
                     // Remove item from queue
