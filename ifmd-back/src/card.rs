@@ -7,9 +7,7 @@ pub struct Card {
     /// Scryfall ID of the card
     pub card_id: String,
     /// Path to the card image on scryfall
-    pub card_img_path: String,
-    /// Error message, if any
-    pub error: String,
+    pub card_url: String,
 }
 
 /// Represents a card in the system
@@ -25,17 +23,7 @@ impl Card {
         Self {
             card_name,
             card_id,
-            card_img_path,
-            error: String::new(),
-        }
-    }
-
-    pub fn error_card(msg: String) -> Self {
-        Self {
-            card_name: String::new(),
-            card_id: String::new(),
-            card_img_path: String::new(),
-            error: msg,
+            card_url: card_img_path,
         }
     }
 }
@@ -43,6 +31,6 @@ impl Card {
 /// Implement Display trait for Card
 impl fmt::Display for Card {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Card(Name: {}, ID: {}, Image Path: {})", self.card_name, self.card_id, self.card_img_path)
+        write!(f, "Card(Name: {}, ID: {}, Image Path: {})", self.card_name, self.card_id, self.card_url)
     }
 }

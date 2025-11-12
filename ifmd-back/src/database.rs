@@ -54,35 +54,36 @@ pub async fn start_db() -> Pool<Sqlite> {
 pub async fn input_card(database: &Pool<Sqlite>, card: &Card) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
-        INSERT INTO card_name_to_id_cache (card_name, card_id)
-        VALUES (?1, ?2)
+        INSERT INTO card_name_to_id_cache (card_name, card_id, card_url)
+        VALUES (?1, ?2, ?3)
         "#
     )
     .bind(&card.card_name)
     .bind(&card.card_id)
+    .bind(&card.card_url)
     .execute(&*database)
     .await?;
 
     Ok(())
 }
 
-pub async fn check_card_exists(name: &String, database: &Pool<Sqlite>) -> bool {
+pub async fn check_card_exists_by_name_or_id(name_or_id: &str, database: &Pool<Sqlite>) -> bool {
     let query = r#"
         SELECT * FROM card_name_to_id_cache
-        WHERE card_name = ?1
+        WHERE card_name = ?1 OR card_id = ?1
         ORDER BY RANDOM()
         LIMIT 1
     "#;
 
     match sqlx::query_scalar::<_, String>(query)
-        .bind(name)
+        .bind(name_or_id)
         .fetch_optional(&*database)
         .await
     {
         // Found an entry matching this id
-        Ok(_) => false,
+        Ok(v) => {if v.is_some() {true} else {false}},
         // Didn't find an entry matching this id
-        Err(_) => true,
+        Err(_) => false,
     }
 }
 
@@ -114,13 +115,35 @@ pub async fn get_card_id_from_name(
     database: &Pool<Sqlite>,
     card_name: &str,
 ) -> String {
-    let row = sqlx::query("SELECT card_id FROM card_name_to_id_cache WHERE card_name = ?1")
+    let row = match sqlx::query("SELECT card_id FROM card_name_to_id_cache WHERE card_name = ?1")
         .bind(card_name)
         .fetch_one(&*database)
-        .await
-        .expect("Name not found");
+        .await {
+            Ok(v) => v,
+            Err(e) => {println!("Error: {:?}", e); return String::new()},
+        };
 
     row.get("card_id")
+}
+
+pub async fn get_card_by_id(
+    database: &Pool<Sqlite>,
+    card_id: &str,
+) -> Card {
+    let row = sqlx::query_as::<_, Card>(
+        r#"
+        SELECT * FROM card_name_to_id_cache
+        WHERE card_id = ?1
+        ORDER BY RANDOM()
+        LIMIT 1
+        "#,
+    )
+    .bind(card_id)
+    .fetch_one(database)
+    .await
+    .expect("Failed to fetch card by ID");
+
+    row
 }
 
 pub async fn get_device_stats_after(
