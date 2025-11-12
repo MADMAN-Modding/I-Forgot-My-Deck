@@ -68,16 +68,17 @@ pub async fn input_card(database: &Pool<Sqlite>, card: &Card) -> Result<(), sqlx
     Ok(())
 }
 
-pub async fn check_card_exists_by_name_or_id(name_or_id: &str, database: &Pool<Sqlite>) -> bool {
+pub async fn check_card_exists_by_name(name_or_id: &str, set: &str, database: &Pool<Sqlite>) -> bool {
     let query = r#"
         SELECT * FROM card_name_to_id_cache
-        WHERE card_name = ?1 OR card_id = ?1
+        WHERE (card_name = ?1 OR card_id = ?1) AND card_set = ?2
         ORDER BY RANDOM()
         LIMIT 1
     "#;
 
     match sqlx::query_scalar::<_, String>(query)
         .bind(name_or_id.to_lowercase())
+        .bind(set.to_lowercase())
         .fetch_optional(&*database)
         .await
     {

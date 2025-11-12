@@ -34,7 +34,7 @@ pub async fn get_or_fetch_card_by_id(card_id: &str, _state: &Arc<AppState>) -> R
 
 pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: &Arc<AppState>) -> Result<Card, anyhow::Error> {
     
-    if database::check_card_exists_by_name_or_id(card_name, &state.database).await {
+    if database::check_card_exists_by_name(card_name, set, &state.database).await {
         let card_id = database::get_card_id_from_name(&state.database, card_name).await;
 
         return Ok(database::get_card_by_id(&state.database, &card_id).await);

@@ -11,7 +11,8 @@ use tower_http::cors::CorsLayer;
 async fn main() {
     constants::setup();
 
-    parse_deck::read_deck_file("deck.txt").expect("Failed to read deck file");
+    let deck = parse_deck::read_deck_file("deck.txt").expect("Failed to read deck file");
+    deck.list_cards();
     
     let db = database::start_db().await;
 
@@ -29,14 +30,26 @@ async fn main() {
         .route("/api/cards/name/:card_name/:card_set", get(get_card_by_exact_name))
         .route("/ws", get(ws_handler))
         .layer(CorsLayer::permissive())
-        .with_state(app_state);
+        .with_state(app_state.clone());
 
     // Start the server
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("Listening on {addr}");
 
+    // Add the deck to the queue for processing
+    let fetch_queue = &app_state.fetch_queue;
+    for card in deck.cards {
+        fetch_queue.push_back(ifmd_back::queue::QueueTask {
+            queue_type: ifmd_back::queue::QueueType::ArtNameLookup,
+            identifier: card.card_name.clone(),
+            set: card.card_set.clone().unwrap_or_default(),
+        }).await;
+    }
+
     axum_server::bind(addr)
         .serve(app.into_make_service())
         .await
         .unwrap();
+
+
 }
