@@ -4,7 +4,7 @@ use crate::{card::Card, database, state::AppState};
 use reqwest::header::{ACCEPT, USER_AGENT};
 use tokio::fs as tfs;
 
-pub async fn get_or_fetch_card_by_id(card_id: &str, _state: Arc<AppState>) -> Result<Card, anyhow::Error> {
+pub async fn get_or_fetch_card_by_id(card_id: &str, _state: &Arc<AppState>) -> Result<Card, anyhow::Error> {
     // Create directory split for first 2 hex chars of the UUID
     let file_path = build_path(card_id).await?;
     let path = PathBuf::from(&file_path);
@@ -32,7 +32,7 @@ pub async fn get_or_fetch_card_by_id(card_id: &str, _state: Arc<AppState>) -> Re
     Ok(Card::new(card_id.to_string(), card_id.to_string(), img_url.to_string()))
 }
 
-pub async fn get_or_fetch_card_by_exact_name(card_name: &str, state: Arc<AppState>) -> Result<Card, anyhow::Error> {
+pub async fn get_or_fetch_card_by_exact_name(card_name: &str, state: &Arc<AppState>) -> Result<Card, anyhow::Error> {
     
     if database::check_card_exists_by_name_or_id(card_name, &state.database).await {
         let card_id = database::get_card_id_from_name(&state.database, card_name).await;
