@@ -69,7 +69,6 @@ pub async fn manage_queue(state: Arc<state::AppState>) {
         let queue_manager = &state.fetch_queue;
         
         if queue_manager.queue.get().unwrap().lock().await.is_empty() {
-            println!("Queue is empty, waiting...");
             thread::sleep(std::time::Duration::from_millis(QUEUE_DELAY_MS));
         } else {
             println!("Queue has {} items", queue_manager.queue.get().unwrap().lock().await.len());

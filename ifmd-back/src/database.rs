@@ -58,7 +58,7 @@ pub async fn input_card(database: &Pool<Sqlite>, card: &Card) -> Result<(), sqlx
         VALUES (?1, ?2, ?3)
         "#
     )
-    .bind(&card.card_name)
+    .bind(&card.card_name.to_lowercase())
     .bind(&card.card_id)
     .bind(&card.card_url)
     .execute(&*database)
@@ -76,7 +76,7 @@ pub async fn check_card_exists_by_name_or_id(name_or_id: &str, database: &Pool<S
     "#;
 
     match sqlx::query_scalar::<_, String>(query)
-        .bind(name_or_id)
+        .bind(name_or_id.to_lowercase())
         .fetch_optional(&*database)
         .await
     {
@@ -116,7 +116,7 @@ pub async fn get_card_id_from_name(
     card_name: &str,
 ) -> String {
     let row = match sqlx::query("SELECT card_id FROM card_name_to_id_cache WHERE card_name = ?1")
-        .bind(card_name)
+        .bind(card_name.to_lowercase())
         .fetch_one(&*database)
         .await {
             Ok(v) => v,
@@ -144,26 +144,4 @@ pub async fn get_card_by_id(
     .expect("Failed to fetch card by ID");
 
     row
-}
-
-pub async fn get_device_stats_after(
-    database: &Pool<Sqlite>,
-    card_name: &str,
-    since_timestamp: i64,
-) -> Vec<Card> {
-    let rows = sqlx::query_as::<_, Card>(
-        r#"
-        SELECT *
-        FROM cards
-        WHERE card_name = ?1
-        ORDER BY time ASC
-        "#,
-    )
-    .bind(card_name)
-    .bind(since_timestamp)
-    .fetch_all(database)
-    .await
-    .expect("Failed to fetch device stats");
-
-    rows
 }
