@@ -1,8 +1,9 @@
 use core::fmt;
-use std::{sync::Arc, thread};
+use std::sync::Arc;
 
 use futures::lock::Mutex;
 use once_cell::sync::OnceCell;
+use tokio::sync::oneshot;
 
 use crate::{cache, state};
 
@@ -24,7 +25,6 @@ impl QueueManager {
     }
 }
 
-#[derive(Clone)]
 /// A task in the fetch queue
 pub struct QueueTask {
     /// The type of task
@@ -33,6 +33,8 @@ pub struct QueueTask {
     pub identifier: String,
     /// The set for the task (optional, used for name lookups)
     pub set: String,
+    /// The response channel to send the result back
+    pub response: oneshot::Sender<Result<String, anyhow::Error>>,
 }
 
 #[derive(Clone)]
@@ -60,6 +62,11 @@ pub fn next_queue_item(queue: &mut Vec<QueueTask>) -> Option<QueueTask> {
     if queue.is_empty() {
         None
     } else {
+        println!(
+            "Dequeuing task: {} - {} - {}",
+            queue[0].queue_type, queue[0].identifier, queue[0].set
+        );
+
         Some(queue.remove(0))
     }
 }
@@ -69,40 +76,35 @@ pub async fn manage_queue(state: Arc<state::AppState>) {
         let queue_manager = &state.fetch_queue;
 
         if queue_manager.queue.get().unwrap().lock().await.is_empty() {
-            thread::sleep(std::time::Duration::from_millis(QUEUE_DELAY_MS));
+            tokio::time::sleep(std::time::Duration::from_millis(QUEUE_DELAY_MS)).await;
         } else {
-            // println!(
-            //     "Queue has {} items",
-            //     queue_manager.queue.get().unwrap().lock().await.len()
-            // );
-            let task =
-                next_queue_item(&mut queue_manager.queue.get().unwrap().lock().await.to_vec());
+            let queue = &mut queue_manager.queue.get().unwrap().lock().await;
+
+            let task = next_queue_item(queue);
             match task {
                 Some(task) => {
-                    // println!(
-                    //     "Processing queue task: {} - {} - {}",
-                    //     task.queue_type, task.identifier, task.set
-                    // );
+                    let response: std::result::Result<String, anyhow::Error>;
+
                     match task.queue_type {
                         QueueType::ArtIDLookup => {
-                            match cache::get_or_fetch_card_by_id(&task.identifier, &state).await {
+                        response = match cache::get_or_fetch_card_by_id(&task.identifier, &state).await {
                                 Ok(card) => {
                                     // Successfully processed ID Lookup
-                                    println!("Fetched card by ID: {}", card);
-                                    // !todo!("Handle successful ID Lookup");
+                                    Ok(card.card_url)
                                 }
                                 Err(err) => {
+                                    // Error processing ID Lookup
                                     eprintln!(
                                         "Error processing ID Lookup for {}: {}",
                                         task.identifier, err
                                     );
+                                    Err(err)
                                 }
-                            }
-                            // Handle ID Lookup
+                            };
                         }
                         QueueType::ArtNameLookup => {
                             // Handle Card Art Lookup
-                            match cache::get_or_fetch_card_by_exact_name(
+                            response = match cache::get_or_fetch_card_by_exact_name(
                                 &task.identifier,
                                 &task.set,
                                 &state,
@@ -111,28 +113,28 @@ pub async fn manage_queue(state: Arc<state::AppState>) {
                             {
                                 Ok(card) => {
                                     // Successfully processed Name Lookup
-                                    println!("Fetched card by Name: {}", card);
-                                    // !todo!("Handle successful Name Lookup");
+                                    Ok(card.card_url)
                                 }
                                 Err(err) => {
+                                    // Error processing Name Lookup
                                     eprintln!(
                                         "Error processing Name Lookup for {}: {}",
                                         task.identifier, err
                                     );
+                                    Err(err)
                                 }
-                            }
+                            };
                         }
-                    }
+                    };
+
+                    let _ = task.response.send(response);
 
                     println!(
                         "Finished queue task: {} - {} - {}",
                         task.queue_type, task.identifier, task.set
                     );
 
-                    // Remove item from queue
-                    queue_manager.queue.get().unwrap().lock().await.remove(0);
-
-                    thread::sleep(std::time::Duration::from_millis(QUEUE_DELAY_MS));
+                    tokio::time::sleep(std::time::Duration::from_millis(QUEUE_DELAY_MS)).await;
                 }
                 None => {}
             }
