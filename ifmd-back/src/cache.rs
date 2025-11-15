@@ -58,12 +58,35 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
         .await?.json::<serde_json::Value>().await?;
 
     let card_id = res["id"].as_str().ok_or_else(|| anyhow::anyhow!("No id for card: {card_name}"))?;
+    let file_path = build_path(card_id).await?;
     
-    let card_img_path = res["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No image for card: {card_name}"))?;
+    let card_img_path: &str; 
+
+    if card_name.contains("//") {
+        // Handle double-faced card names
+        let parts: Vec<&str> = card_name.split("//").collect();
+        if parts.len() != 2 {
+            return Err(anyhow::anyhow!("Invalid double-faced card name: {card_name}"));
+        }
+        let first_face = parts[0].trim();
+        let second_face = parts[1].trim();
+    
+        let card_name = format!("{} // {}", first_face, second_face);
+        card_img_path = res["card_faces"][0]["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No front image for card: {card_name}"))?;
+
+        // Download Front Face
+        download_image(card_img_path, &file_path, card_id).await?;
+        
+        // Download Back Face
+        let back_file_path = file_path.replace(".png", "_back.png");
+        let back_img_url = res["card_faces"][1]["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No back image for card: {card_name}"))?;
+        download_image(back_img_url, &back_file_path, &format!("{}_back", card_id)).await?;
+    } else {
+        card_img_path = res["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No image for card: {card_name}"))?;
+    }
 
     let card = Card::new(card_name.to_string(), card_id.to_string(), card_img_path.to_string(), Some(set.to_string()));
 
-    let file_path = build_path(card_id).await?;
     download_image(&card.card_url, &file_path, card_id).await?;
 
     database::input_card(&state.database, &card).await?;

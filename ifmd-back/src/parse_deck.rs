@@ -49,23 +49,18 @@ pub fn read_deck_file(path: &str) -> Result<Deck, anyhow::Error>{
 
     // Filter out numbers and space before card names
     for line in cards.lines() {
-        let card_name = line.trim_start().splitn(2, ' ').nth(1).unwrap_or(line);
-        cards_vec.push(card_name.to_string());
-    }
-
-    let mut filtered_cards_vec: Vec<String> = Vec::new();
-
-    // Filter out collector numbers at the end of card names
-    for card in cards_vec {
+        let card = line.trim_start().splitn(2, ' ').nth(1).unwrap_or(line);
+        
         let card_name = card.split(')').next().unwrap_or(&card).trim().to_owned() + ")";
-        filtered_cards_vec.push(card_name);
+
+        cards_vec.push(card_name);
     }
 
     let mut deck = Deck::new();
 
     // Separate the card names and sets
-    for card in &filtered_cards_vec {
-        let card_name = card.split('(').next().unwrap_or(card).trim().to_string();
+    for card in &cards_vec {
+        let card_name = card.split('(').next().unwrap_or(card).trim().to_string().replace("/", "//");
         let card_set = card.split('(').nth(1).unwrap_or("").trim_end_matches(')').trim().to_string().to_lowercase();
         deck.add_card(Card::new(card_name, String::new(), String::new(), Some(card_set)));
     }
