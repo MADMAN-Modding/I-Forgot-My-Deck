@@ -2,7 +2,9 @@ use core::fmt;
 
 use crate::card::{Card};
 
+#[tsync::tsync]
 pub struct Deck {
+    /// List of cards in the deck
     pub cards: Vec<Card>,
 }
 

@@ -1,6 +1,7 @@
 use core::fmt;
 
 #[derive(sqlx::FromRow, Clone)]
+#[tsync::tsync]
 pub struct Card {
     /// Name of the card
     pub card_name: String,
