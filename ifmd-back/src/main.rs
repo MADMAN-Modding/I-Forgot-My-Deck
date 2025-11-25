@@ -22,7 +22,7 @@ async fn main() {
 
     // Define your router
     let app = Router::new()
-        .route("/api/cards/name/:card_name/:card_set", get(get_card_by_exact_name))
+        .route("/api/card/name/:card_name/:card_set", get(get_card_by_exact_name))
         .layer(CorsLayer::permissive())
         .with_state(app_state.clone());
 

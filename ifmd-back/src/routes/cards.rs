@@ -40,9 +40,7 @@ pub async fn get_card_by_exact_name(
     // Wait for the result
     println!("Waiting for queue result for card: {} from set: {}", card_name, card_set);
 
-    let mut result = rx.await;
-
-    println!("{}", result.as_mut().unwrap().as_ref().map_err(|e| format!("Oneshot receive error: {}", e)).unwrap());
+    let result = rx.await;
 
     match result {
         Ok(Ok(card)) => {

@@ -70,6 +70,11 @@ async fn download_image(img_url: &str, path: &str, id: &str) -> Result<(), anyho
     if !check_card_downloaded(id).await {
         // Download image bytes
         let img_bytes = reqwest::get(img_url).await?.bytes().await?;
+    
+        let path = PathBuf::from(format!("../ifmd-frontend/public/{}", path));
+
+        tfs::create_dir_all(path.parent().unwrap()).await?;
+
         tfs::write(&path, &img_bytes).await?;
     }
     Ok(())
@@ -85,8 +90,7 @@ async fn build_path(id: &str) -> Result<String, anyhow::Error> {
     // Create directory split for first 2 hex chars of the UUID
     let prefix:(&str, &str) = (&id[0..1], &id[1..2]);
 
-    let dir = format!("../ifmd-frontend/public/cache/{}/{}", prefix.0, prefix.1);
-    tfs::create_dir_all(&dir).await?;
+    let dir = format!("cache/{}/{}", prefix.0, prefix.1);
 
     let file_path = format!("{dir}/{id}.png");
     Ok(file_path)
