@@ -31,7 +31,7 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
 
     let card_id = res["id"].as_str().ok_or_else(|| anyhow::anyhow!("No id for card: {card_name}"))?;
     let file_path = build_path(card_id).await?;
-    
+    let card_display_name = res["name"].as_str();
     let card_img_download: &str; 
 
     if card_name.contains("//") {
@@ -46,6 +46,8 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
         let card_name = format!("{} // {}", first_face, second_face);
         card_img_download = res["card_faces"][0]["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No front image for card: {card_name}"))?;
 
+        
+
         // Download Front Face
         download_image(card_img_download, &file_path, card_id).await?;
         
@@ -53,11 +55,12 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
         let back_file_path = file_path.replace(".png", "_back.png");
         let back_img_url = res["card_faces"][1]["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No back image for card: {card_name}"))?;
         download_image(back_img_url, &back_file_path, &format!("{}_back", card_id)).await?;
+
     } else {
         card_img_download = res["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No image for card: {card_name}"))?;
     }
 
-    let card = Card::new(card_name.to_string(), card_id.to_string(), file_path.clone(), Some(set.to_string()));
+    let card = Card::new(card_name.to_string(), card_display_name.map(|s| s.to_string()), card_id.to_string(), file_path.clone(), Some(set.to_string()));
 
     download_image(&card_img_download, &file_path, card_id).await?;
 
@@ -96,33 +99,33 @@ async fn build_path(id: &str) -> Result<String, anyhow::Error> {
     Ok(file_path)
 }
 
-/// Not used
-/// 
-/// Retained for potential future use
-pub async fn get_or_fetch_card_by_id(card_id: &str, _state: &Arc<AppState>) -> Result<Card, anyhow::Error> {
-    // Create directory split for first 2 hex chars of the UUID
-    let file_path = build_path(card_id).await?;
-    let path = PathBuf::from(&file_path);
-    if path.exists() {
-        return Ok(Card::new(card_id.to_string(), card_id.to_string(), file_path, None));
-    }
+// Not used
+// 
+// Retained for potential future use
+// pub async fn get_or_fetch_card_by_id(card_id: &str, _state: &Arc<AppState>) -> Result<Card, anyhow::Error> {
+//     // Create directory split for first 2 hex chars of the UUID
+//     let file_path = build_path(card_id).await?;
+//     let path = PathBuf::from(&file_path);
+//     if path.exists() {
+//         return Ok(Card::new(card_id.to_string(), card_id.to_string(), file_path, None));
+//     }
 
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
-        .build()?;
+//     let client = reqwest::Client::builder()
+//         .timeout(std::time::Duration::from_secs(10))
+//         .build()?;
 
-    // Fetch metadata from Scryfall API
-    let url = format!("https://api.scryfall.com/cards/{card_id}");
-    let res = client
-        .get(&url)
-        .header(USER_AGENT, "I-Forgot-My-Deck/0.1")
-        .header(ACCEPT, "applications/json")
-        .send()
-        .await?.json::<serde_json::Value>().await?;
+//     // Fetch metadata from Scryfall API
+//     let url = format!("https://api.scryfall.com/cards/{card_id}");
+//     let res = client
+//         .get(&url)
+//         .header(USER_AGENT, "I-Forgot-My-Deck/0.1")
+//         .header(ACCEPT, "applications/json")
+//         .send()
+//         .await?.json::<serde_json::Value>().await?;
 
-    let img_url = res["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No image for card ID: {card_id}"))?;
+//     let img_url = res["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No image for card ID: {card_id}"))?;
     
-    download_image(img_url, &file_path, card_id).await?;
+//     download_image(img_url, &file_path, card_id).await?;
 
-    Ok(Card::new(card_id.to_string(), card_id.to_string(), img_url.to_string(), None))
-}
+//     Ok(Card::new(card_id.to_string(), card_id.to_string(), img_url.to_string(), None))
+// }

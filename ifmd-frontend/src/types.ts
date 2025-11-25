@@ -3,6 +3,8 @@
 export interface Card {
   /** Name of the card */
   card_name: string;
+  /** Display name of the card */
+  card_display_name?: string;
   /** Scryfall ID of the card */
   card_id: string;
   /** Path to the card image on scryfall */

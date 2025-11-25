@@ -88,13 +88,14 @@ pub async fn manage_queue(state: Arc<state::AppState>) {
 
                     match task.queue_type {
                         QueueType::ArtIDLookup => {
-                        response = cache::get_or_fetch_card_by_id(&task.identifier, &state).await.and_then(|card| Ok(card.to_json()));
-                            if let Err(ref err) = response {
-                                eprintln!(
-                                    "Error processing ID Lookup for {}: {}",
-                                    task.identifier, err
-                                );
-                            }
+                        // response = cache::get_or_fetch_card_by_id(&task.identifier, &state).await.and_then(|card| Ok(card.to_json()));
+                        //     if let Err(ref err) = response {
+                        //         eprintln!(
+                        //             "Error processing ID Lookup for {}: {}",
+                        //             task.identifier, err
+                        //         );
+                        //     }
+                            response = Err(anyhow::anyhow!("ArtIDLookup no longer implemented"));
                         }
                         QueueType::ArtNameLookup => {
                             // Handle Card Art Lookup

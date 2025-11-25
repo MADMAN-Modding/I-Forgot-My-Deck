@@ -1,0 +1,1 @@
+ALTER TABLE card_name_to_id_cache ADD card_display_name

@@ -76,9 +76,9 @@ function App() {
           <div key={card.card_id} className="card">
             <div className="container">
               <h4>
-                <b>{card.card_name ?? "Unknown"}</b>
+                <b>{card.card_display_name ?? card.card_name}</b>
               </h4>
-              <img src={card.card_url} alt={"Image of: " + card.card_name} />
+              <img src={card.card_url} alt={"Image of: " + (card.card_display_name ?? card.card_name)} />
               <p>Set: {card.card_set ?? "Unknown"} </p>
               <p>ID: {card.card_id ?? "Unknown"}</p>
             </div>

@@ -64,7 +64,7 @@ pub fn read_deck_file(path: &str) -> Result<Deck, anyhow::Error>{
     for card in &cards_vec {
         let card_name = card.split('(').next().unwrap_or(card).trim().to_string().replace("//", "/").replace("/", "//");
         let card_set = card.split('(').nth(1).unwrap_or("").trim_end_matches(')').trim().to_string().to_lowercase();
-        deck.add_card(Card::new(card_name, String::new(), String::new(), Some(card_set)));
+        deck.add_card(Card::new(card_name, None, String::new(), String::new(), Some(card_set)));
     }
 
     Ok(deck)
