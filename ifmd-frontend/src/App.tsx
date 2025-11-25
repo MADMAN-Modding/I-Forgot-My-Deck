@@ -1,36 +1,32 @@
 import { useEffect, useState } from "react";
-import type { Person } from "./types";
+import type { Card } from "./types";
 import "./App.css";
 
-const AVATAR_1 =
-  "https://res.cloudinary.com/dqse2txyi/image/upload/v1666049372/axum_server/img_avatar_lf92vl.png";
-
-const AVATAR_2 =
-  "https://res.cloudinary.com/dqse2txyi/image/upload/v1666049372/axum_server/img_avatar2_erqray.png";
-
 function App() {
-  const [people, setPeople] = useState<Person[]>([]);
+  const [card, setCard] = useState<Card | null>(null);
 
   useEffect(() => {
-    fetch("http://localhost:3000/people")
-      .then((res) => res.json())
-      .then((people: Person[]) => setPeople(people));
+    fetch("http://127.0.0.1:3000/api/cards/name/armageddon/6ed")
+      .then((res) => {console.log(res); return res.json()})
+      .then((data: Card) => setCard(data))
+      .catch((error) => console.error("Error fetching card:", error));
   }, []);
 
   return (
     <div className="app">
-      {people.map((person, index) => (
-        <div key={index} className="card">
-          <img src={index % 2 == 0 ? AVATAR_1 : AVATAR_2} alt="Avatar" />
+      {card && (
+        <div key={card.card_id} className="card">
           <div className="container">
             <h4>
-              <b>{person.name}</b>
+              <b>{card.card_name ?? "Unknown"}</b>
             </h4>
-            <p>Age: {person.age}</p>
-            <p>Favourite Food: {person.favorite_food ?? "Unknown"}</p>
+            <img src={card.card_url} alt={"Image of: " + card.card_name} />
+            <p>Set: {card.card_set ?? "Unknown"} </p>
+            <p>ID: {card.card_id ?? "Unknown"}</p>
+            <p>URL: {card.card_url ?? "Unknown"}</p>
           </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }

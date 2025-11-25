@@ -1,8 +1,6 @@
 use crate::{database, state::AppState};
 use axum::{
-    extract::{Path, State},
-    http::StatusCode,
-    response::IntoResponse,
+    Json, extract::{Path, State}, http::StatusCode
 };
 use tokio::sync::oneshot;
 use std::sync::Arc;
@@ -10,7 +8,7 @@ use std::sync::Arc;
 pub async fn get_card_by_exact_name(
     Path((card_name, card_set)): Path<(String, String)>,
     State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
+) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<String>)> {
     println!(
         "Queued exact name lookup for card: {} from set: {}",
         card_name, card_set
@@ -22,13 +20,13 @@ pub async fn get_card_by_exact_name(
 
         let card = database::get_card_by_id(&state.database, &card_id).await;
 
-        return (StatusCode::OK, format!("{}", card.card_url));
+        return Ok((StatusCode::OK, Json(serde_json::to_value(card).unwrap())));
     }
 
     // Add task to queue
     let fetch_queue = &state.fetch_queue;
 
-    let (tx, rx) = oneshot::channel::<std::result::Result<String, anyhow::Error>>();
+    let (tx, rx) = oneshot::channel::<std::result::Result<serde_json::Value, anyhow::Error>>();
 
     fetch_queue
         .push_back(crate::queue::QueueTask {
@@ -44,20 +42,20 @@ pub async fn get_card_by_exact_name(
 
     let mut result = rx.await;
 
-    println!("{}", result.as_mut().unwrap().as_ref().map_err(|e| format!("Oneshot receive error: {}", e)).unwrap_or(&"No result".to_string()));
+    println!("{}", result.as_mut().unwrap().as_ref().map_err(|e| format!("Oneshot receive error: {}", e)).unwrap());
 
     match result {
-        Ok(Ok(card_url)) => {
+        Ok(Ok(card)) => {
             println!("Successfully fetched card from queue: {} from set: {}", card_name, card_set);
-            return (StatusCode::OK, format!("{}", card_url));
+            return Ok((StatusCode::OK, Json(card)));
         }
         Ok(Err(e)) => {
             eprintln!("Error fetching card: {}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error fetching card: {}", e));
+            return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(format!("Error fetching card: {}", e))));
         }
         Err(e) => {
             eprintln!("Error receiving from queue: {}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, format!("Error receiving from queue: {}", e));
+            return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(format!("Error receiving from queue: {}", e))));
         }
     }
 }

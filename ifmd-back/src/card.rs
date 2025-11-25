@@ -1,6 +1,6 @@
 use core::fmt;
 
-#[derive(sqlx::FromRow, Clone)]
+#[derive(sqlx::FromRow, Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[tsync::tsync]
 pub struct Card {
     /// Name of the card
@@ -29,6 +29,10 @@ impl Card {
             card_url: card_img_path,
             card_set,
         }
+    }
+
+    pub fn to_json(&self) -> serde_json::Value {
+        serde_json::to_value(self).unwrap()
     }
 }
 

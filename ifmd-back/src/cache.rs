@@ -85,7 +85,7 @@ async fn build_path(id: &str) -> Result<String, anyhow::Error> {
     // Create directory split for first 2 hex chars of the UUID
     let prefix:(&str, &str) = (&id[0..1], &id[1..2]);
 
-    let dir = format!("cache/{}/{}", prefix.0, prefix.1);
+    let dir = format!("../ifmd-frontend/public/cache/{}/{}", prefix.0, prefix.1);
     tfs::create_dir_all(&dir).await?;
 
     let file_path = format!("{dir}/{id}.png");

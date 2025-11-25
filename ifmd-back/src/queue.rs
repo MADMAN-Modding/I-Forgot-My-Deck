@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use futures::lock::Mutex;
 use once_cell::sync::OnceCell;
+use serde_json::Value;
 use tokio::sync::oneshot;
 
 use crate::{cache, state};
@@ -34,7 +35,7 @@ pub struct QueueTask {
     /// The set for the task (optional, used for name lookups)
     pub set: String,
     /// The response channel to send the result back
-    pub response: oneshot::Sender<Result<String, anyhow::Error>>,
+    pub response: oneshot::Sender<Result<Value, anyhow::Error>>,
 }
 
 #[derive(Clone)]
@@ -83,47 +84,32 @@ pub async fn manage_queue(state: Arc<state::AppState>) {
             let task = next_queue_item(queue);
             match task {
                 Some(task) => {
-                    let response: std::result::Result<String, anyhow::Error>;
+                    let response: std::result::Result<Value, anyhow::Error>;
 
                     match task.queue_type {
                         QueueType::ArtIDLookup => {
-                        response = match cache::get_or_fetch_card_by_id(&task.identifier, &state).await {
-                                Ok(card) => {
-                                    // Successfully processed ID Lookup
-                                    Ok(card.card_url)
-                                }
-                                Err(err) => {
-                                    // Error processing ID Lookup
-                                    eprintln!(
-                                        "Error processing ID Lookup for {}: {}",
-                                        task.identifier, err
-                                    );
-                                    Err(err)
-                                }
-                            };
+                        response = cache::get_or_fetch_card_by_id(&task.identifier, &state).await.and_then(|card| Ok(card.to_json()));
+                            if let Err(ref err) = response {
+                                eprintln!(
+                                    "Error processing ID Lookup for {}: {}",
+                                    task.identifier, err
+                                );
+                            }
                         }
                         QueueType::ArtNameLookup => {
                             // Handle Card Art Lookup
-                            response = match cache::get_or_fetch_card_by_exact_name(
+                            response = cache::get_or_fetch_card_by_exact_name(
                                 &task.identifier,
                                 &task.set,
                                 &state,
                             )
-                            .await
-                            {
-                                Ok(card) => {
-                                    // Successfully processed Name Lookup
-                                    Ok(card.card_url)
-                                }
-                                Err(err) => {
-                                    // Error processing Name Lookup
-                                    eprintln!(
-                                        "Error processing Name Lookup for {}: {}",
-                                        task.identifier, err
-                                    );
-                                    Err(err)
-                                }
-                            };
+                            .await.and_then(|card| Ok(card.to_json()));
+                            if let Err(ref err) = response {
+                                eprintln!(
+                                    "Error processing Name Lookup for {}: {}",
+                                    task.identifier, err
+                                );
+                            }
                         }
                     };
 

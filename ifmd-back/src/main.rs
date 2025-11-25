@@ -1,7 +1,6 @@
 use axum::{Router, routing::get};
 use ifmd_back::{constants, database, routes::{
         cards::get_card_by_exact_name,
-        ws::ws_handler,
     }, state
 };
 use std::{net::SocketAddr, sync::Arc};
@@ -24,7 +23,6 @@ async fn main() {
     // Define your router
     let app = Router::new()
         .route("/api/cards/name/:card_name/:card_set", get(get_card_by_exact_name))
-        .route("/ws", get(ws_handler))
         .layer(CorsLayer::permissive())
         .with_state(app_state.clone());
 
