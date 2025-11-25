@@ -33,7 +33,7 @@ impl Deck {
 
     pub fn list_cards(&self) {
         for card in &self.cards {
-            println!("{} ({})", card.card_name, card.card_set.as_deref().unwrap_or("N/A").to_uppercase());
+            println!("{} ({})", card.name, card.set_id.as_deref().unwrap_or("N/A").to_uppercase());
         }
     }
 }

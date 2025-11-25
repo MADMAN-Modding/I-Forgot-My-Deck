@@ -2,15 +2,15 @@
 
 export interface Card {
   /** Name of the card */
-  card_name: string;
+  name: string;
   /** Display name of the card */
-  card_display_name?: string;
+  display_name?: string;
   /** Scryfall ID of the card */
-  card_id: string;
+  id: string;
   /** Path to the card image on scryfall */
-  card_url: string;
+  url: string;
   /** Set the card belongs to */
-  card_set?: string;
+  set_id?: string;
 }
 
 export interface Deck {

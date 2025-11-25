@@ -1,2 +1,2 @@
 -- Add set column to db
-ALTER TABLE card_name_to_id_cache ADD card_set
+ALTER TABLE card_name_to_id_cache ADD set_id

@@ -1,6 +1,6 @@
-
-
 .app {
+  margin-left: auto;
+  margin-right: auto;
   display: flex;
   flex-direction: row;
   column-gap: 16px;
@@ -20,8 +20,39 @@
   padding: 2px 16px;
 }
 
-img {
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.full-width {
   width: 300px;
 }
 
+.centered {
+  margin: 0 auto; /* Centers the first card */
+}
 
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.card {
+  border: 1px solid #ccc;
+  border-radius: 12px; /* Rounded corners for nice card look */
+  overflow: hidden; /* Ensures images respect the rounded corners */
+  padding: 10px;
+  background-color: #ffffff00;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Optional: slight shadow for depth */
+}
+
+.card img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 14px; /* Slight rounding for the image itself */
+}

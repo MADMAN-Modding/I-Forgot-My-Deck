@@ -4,15 +4,15 @@ use core::fmt;
 #[tsync::tsync]
 pub struct Card {
     /// Name of the card
-    pub card_name: String,
+    pub name: String,
     /// Display name of the card
-    pub card_display_name: Option<String>,
+    pub display_name: Option<String>,
     /// Scryfall ID of the card
-    pub card_id: String,
+    pub id: String,
     /// Path to the card image on scryfall
-    pub card_url: String,
+    pub url: String,
     /// Set the card belongs to
-    pub card_set: Option<String>,
+    pub set_id: Option<String>,
 }
 
 /// Represents a card in the system
@@ -24,13 +24,13 @@ impl Card {
     /// * `card_img_path: String` - Path to the card image on scryfall
     /// # Returns
     /// `Card` - New Card instance
-    pub fn new(card_name: String, card_display_name: Option<String>, card_id: String, card_img_path: String, card_set: Option<String>) -> Self {
+    pub fn new(name: String, display_name: Option<String>, id: String, card_img_path: String, set_id: Option<String>) -> Self {
         Self {
-            card_name,
-            card_display_name,
-            card_id,
-            card_url: card_img_path,
-            card_set,
+            name,
+            display_name,
+            id,
+            url: card_img_path,
+            set_id,
         }
     }
 
@@ -42,6 +42,6 @@ impl Card {
 /// Implement Display trait for Card
 impl fmt::Display for Card {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Card(Name: {:?}, Set: {:?}, ID: {}, Image Path: {})", self.card_display_name, self.card_set.as_deref().unwrap_or("N/A"), self.card_id, self.card_url)
+        write!(f, "Card(Name: {:?}, Set: {:?}, ID: {}, Image Path: {})", self.display_name, self.set_id.as_deref().unwrap_or("N/A"), self.id, self.url)
     }
 }

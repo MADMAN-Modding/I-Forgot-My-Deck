@@ -11,7 +11,7 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
 
         let mut card = database::get_card_by_id(&state.database, &card_id).await;
 
-        card.card_url = build_path(&card.card_id).await?;
+        card.url = build_path(&card.id).await?;
 
         return Ok(card);
     }

@@ -54,15 +54,15 @@ pub async fn start_db() -> Pool<Sqlite> {
 pub async fn input_card(database: &Pool<Sqlite>, card: &Card) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
-        INSERT INTO card_name_to_id_cache (card_name, card_display_name, card_id, card_url, card_set)
+        INSERT INTO card_name_to_id_cache (name, display_name, id, url, set_id)
         VALUES (?1, ?2, ?3, ?4, ?5)
         "#
     )
-    .bind(&card.card_name.to_lowercase())
-    .bind(&card.card_display_name.as_deref().unwrap_or(""))
-    .bind(&card.card_id.to_lowercase())
-    .bind(&card.card_url.to_lowercase())
-    .bind(&card.card_set.as_deref().unwrap_or("").to_lowercase())
+    .bind(&card.name.to_lowercase())
+    .bind(&card.display_name.as_deref().unwrap_or(""))
+    .bind(&card.id.to_lowercase())
+    .bind(&card.url.to_lowercase())
+    .bind(&card.set_id.as_deref().unwrap_or("").to_lowercase())
     .execute(&*database)
     .await?;
 
@@ -72,7 +72,7 @@ pub async fn input_card(database: &Pool<Sqlite>, card: &Card) -> Result<(), sqlx
 pub async fn check_card_exists_by_name(name_or_id: &str, set: &str, database: &Pool<Sqlite>) -> bool {
     let query = r#"
         SELECT * FROM card_name_to_id_cache
-        WHERE (card_name = ?1 OR card_id = ?1) AND card_set = ?2
+        WHERE (name = ?1 OR id = ?1) AND set_id = ?2
         ORDER BY RANDOM()
         LIMIT 1
     "#;
@@ -100,7 +100,7 @@ pub async fn check_card_exists_by_name(name_or_id: &str, set: &str, database: &P
 pub async fn get_all_cached_cards(database: &Pool<Sqlite>) -> HashSet<String> {
     let mut uids = HashSet::new();
 
-    let rows = sqlx::query("SELECT card_id FROM card_name_to_id_cache")
+    let rows = sqlx::query("SELECT id FROM card_name_to_id_cache")
         .fetch_all(database)
         .await
         .expect("Failed to fetch device IDs");
@@ -118,7 +118,7 @@ pub async fn get_card_id_from_name(
     database: &Pool<Sqlite>,
     card_name: &str,
 ) -> String {
-    let row = match sqlx::query("SELECT card_id FROM card_name_to_id_cache WHERE card_name = ?1")
+    let row = match sqlx::query("SELECT id FROM card_name_to_id_cache WHERE name = ?1")
         .bind(card_name.to_lowercase())
         .fetch_one(&*database)
         .await {
@@ -126,7 +126,7 @@ pub async fn get_card_id_from_name(
             Err(e) => {println!("Error: {:?}", e); return String::new()},
         };
 
-    row.get("card_id")
+    row.get("id")
 }
 
 pub async fn get_card_by_id(
@@ -136,7 +136,7 @@ pub async fn get_card_by_id(
     let row = sqlx::query_as::<_, Card>(
         r#"
         SELECT * FROM card_name_to_id_cache
-        WHERE card_id = ?1
+        WHERE id = ?1
         ORDER BY RANDOM()
         LIMIT 1
         "#,
