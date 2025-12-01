@@ -2,9 +2,11 @@ pub mod cache;
 pub mod card;
 pub mod constants;
 pub mod database;
+pub mod email;
 pub mod json_handler;
 
 pub mod routes {
+    pub mod accounts;
     pub mod cards;
     pub mod ws;
 }

@@ -5,7 +5,7 @@ use sqlx::{
     Pool, Row, Sqlite,
 };
 
-use crate::{card::Card, constants};
+use crate::{card::Card, constants, routes::accounts::Account};
 
 /// Connects to the sqlite database and runs migrations
 ///
@@ -147,4 +147,48 @@ pub async fn get_card_by_id(
     .expect("Failed to fetch card by ID");
 
     row
+}
+
+
+// Begin Account Section
+
+
+/// Creates a new row in the DB for the account
+pub async fn add_account(database: &Pool<Sqlite>, account: &Account) -> Result<(), anyhow::Error> {
+       sqlx::query(
+        r#"
+        INSERT INTO accounts (display_name, id, salt, pass, email)
+        VALUES (?1, ?2, ?3, ?4, ?5)
+        "#
+    )
+    .bind(&account.display_name)
+    .bind(&account.id.to_lowercase())
+    .bind(&account.salt)
+    .bind(&account.pass)
+    .bind(&account.email.to_lowercase())
+    .execute(&*database)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn check_account_exists(database: &Pool<Sqlite>, account: &Account) -> bool {
+    let query = r#"
+        SELECT * FROM accounts
+        WHERE id = ?1 OR email = ?2
+        ORDER BY RANDOM()
+        LIMIT 1
+    "#;
+
+    match sqlx::query_scalar::<_, String>(query)
+        .bind(account.id.to_lowercase())
+        .bind(account.email.to_lowercase())
+        .fetch_optional(&*database)
+        .await
+    {
+        // Found an entry matching this id
+        Ok(v) => {if v.is_some() {true} else {false}},
+        // Didn't find an entry matching this id
+        Err(_) => false,
+    }
 }

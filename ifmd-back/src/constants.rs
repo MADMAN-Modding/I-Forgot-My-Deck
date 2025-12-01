@@ -20,7 +20,7 @@ pub const BUFFER_SIZE: usize = 4096;
 pub fn setup() {
     PROJ_DIRS
         .set(
-            ProjectDirs::from("com", "MADMAN-Modding", "RLSD")
+            ProjectDirs::from("com", "MADMAN-Modding", "IFMD")
                 .expect("Failed to create ProjectDirs"),
         )
         .unwrap();
@@ -58,6 +58,10 @@ pub fn get_client_config_path() -> String {
 /// Returns the path to server configuration JSON file
 pub fn get_server_config_path() -> String {
     format!("{}/server-config.json", get_config_dir())
+}
+
+pub fn get_email_config_path() -> String {
+    format!("{}/email-config.json", get_config_dir())
 }
 
 pub fn get_data_dir() -> String {

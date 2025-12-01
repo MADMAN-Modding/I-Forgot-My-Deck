@@ -7,6 +7,8 @@ use std::{
 
 use serde_json::{json, Value};
 
+use crate::{constants::get_email_config_path, email::EmailConfig};
+
 /// Reads the config json and returns the value of the requested key
 ///
 /// # Arguments
@@ -106,11 +108,8 @@ pub fn init_json(path: &str) -> Value {
     let _ = std::fs::create_dir_all(Path::new(&path).parent().unwrap());
 
     // Initializes the json_data variable
-    let json_data: Value = if path.contains("client") {
-        get_default_client_json_data()
-    } else {
-        get_default_server_json_data()
-    };
+    // let json_data: Value = if path.contains("email-config.json") {
+    let json_data = get_default_email_config();
 
     // Creating the JSON file
     fs::write(
@@ -363,6 +362,10 @@ pub fn get_json_length(json: &Value) -> u32 {
     size
 }
 
+pub fn get_email_config() -> EmailConfig {
+    read_json_as_value(&get_email_config_path()).to_email_config()
+}
+
 /// Resets the client config
 // pub fn reset_client_config() {
 //     let default_json = get_default_client_json_data();
@@ -377,66 +380,37 @@ pub fn get_json_length(json: &Value) -> u32 {
 //     write_json_from_value(&get_server_config_path(), default_json);
 // }
 
-/// Default settings for the client config
-fn get_default_client_json_data() -> Value {
+/// Default settings for the email config
+fn get_default_email_config() -> Value {
     json!({
-        "deviceID": "N/A",
-        "serverAddr": "127.0.0.1:51347",
-        "friendlyName": "No Config Present"
+        "emailAddress": "me@example.com",
+        "username": "me@example.com",
+        "emailPassword": "1243124231",
+        "emailSMTPHost": "smtp.example.com",
+        "emailSMTPPort": 465,
     })
+
 }
 
-/// Default settings for the server config
-fn get_default_server_json_data() -> Value {
-    json!({
-        "registeredDeviceIDs": [],
-        "adminIDs": [],
-        "firstRun": true
-    })
+trait ToEmailConfig {
+    fn to_email_config(&self) -> EmailConfig;
 }
 
-// pub trait ToDevice {
-//     /// Converts a JSON value to a `Device` instance.
-//     ///
-//     /// # Arguments
-//     /// * `value` - The JSON value to convert.
-//     ///
-//     /// # Returns
-//     /// A `Device` instance created from the JSON value.
-//     fn to_device(&self) -> Device;
-// }
-
-// pub trait ToClientConfig {
-//     fn to_client(&self) -> ClientConfig;
-// }
-
-// impl ToClientConfig for serde_json::Value {
-//     /// Converts a JSON `Value` to a `ClientConfig` instance
-//     ///
-//     /// # Returns
-//     /// * A `ClientConfig` instance created from the JSON `Value`
-//     fn to_client(&self) -> ClientConfig {
-//         ClientConfig::new(
-//             self["deviceID"].as_str().unwrap_or_default().to_string(),
-//             self["deviceName"].as_str().unwrap_or_default().to_string(),
-//             self["serverAddr"].as_str().unwrap_or_default().to_string(),
-//         )
-//     }
-// }
-
-// pub trait ToServerConfig {
-//     fn to_server(&self) -> ServerConfig;
-// }
-
-// impl ToServerConfig for serde_json::Value {
-//     fn to_server(&self) -> ServerConfig {
-//         let registered_device_ids: Vec<String> = self["registeredDeviceIDs"].as_array().unwrap_or(&Vec::new()).iter().map(|v| v.as_str().unwrap_or_default().to_string()).collect();
-//         let admin_ids: Vec<String> = self["adminIDs"].as_array().unwrap_or(&Vec::new()).iter().map(|v| v.as_str().unwrap_or_default().to_string()).collect();
-
-//         ServerConfig::new(
-//             registered_device_ids,
-//             admin_ids,
-//             self["firstRun"].as_bool().unwrap_or(false),
-//         )
-//     }
-// }
+impl ToEmailConfig for serde_json::Value {
+    fn to_email_config(&self) -> EmailConfig {
+        // Extract each field from the JSON value, providing defaults if necessary
+        let email_address = self.get("emailAddress").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let username = self.get("username").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let email_password = self.get("emailPassword").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let email_smtp_host = self.get("emailSMTPHost").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+        let email_smtp_port = self.get("emailSMTPPort").and_then(|v| v.as_u64()).unwrap_or(587) as u16;
+        
+        EmailConfig::new(
+            email_address,
+            username,
+            email_password,
+            email_smtp_host,
+            email_smtp_port,
+        )
+    }
+}

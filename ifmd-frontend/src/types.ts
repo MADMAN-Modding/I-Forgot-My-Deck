@@ -17,3 +17,11 @@ export interface Deck {
   /** List of cards in the deck */
   cards: Array<Card>;
 }
+
+export interface Account {
+  display_name: string;
+  id: string;
+  pass: string;
+  email: string;
+  salt: string;
+}
