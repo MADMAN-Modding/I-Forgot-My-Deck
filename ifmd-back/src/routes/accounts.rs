@@ -54,38 +54,44 @@ pub async fn make_account(
     let display_name: &str = &display_name;
     let id: &str = &id;
     let email: &str = &email;
-    let pass: &str = &pass;
 
-    let account = Account::new(display_name, id, pass, email, "SALT");
+    let hash_result = bcrypt::hash_with_result(pass, bcrypt::DEFAULT_COST).unwrap();
+
+    let salt = hash_result.get_salt();
+
+    let pass = hash_result.to_string();
+
+    let account = Account::new(display_name, id, &pass, email, &salt);
 
     let message = format!("Hello, {display_name}!\n I hope you enjoy I Forgot My Deck!");
-
-    // Check if the account exists
-    if check_account_exists(&state.database, &account).await {
-        // Account already exists
-        return Err((StatusCode::CONFLICT, Json("Account Exists".to_string())));
-    }
 
     // Validate email
     if !email::validate_email(email) {
         return Err((StatusCode::BAD_REQUEST, Json("Invalid Email".to_string())));
     }
 
-    // Send email
-    match send_email(&state.email_config, &message, email) {
-        Ok(_) => {
-            // Email sent successfully, now add the account to the database
-            match add_account(&state.database, &account).await {
-                Ok(_) => Ok((StatusCode::OK, Json(json!({"msg": "Account Created"})))),
-                Err(_) => Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json("Failed to input data".to_string()),
-                )),
-            }
-        }
-        Err(_) => Err((
-            StatusCode::NOT_ACCEPTABLE,
-            Json("Account Email Failed".to_string()),
-        )),
+    if !check_account_exists(&state.database, &account).await {
+        match add_account(&state.database, &account).await {
+            Ok(_) => {},
+            Err(_) => return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json("Failed to input data".to_string()),
+            )),
+        };
+    } else {
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, axum::Json("Error Making Account".to_string())))
     }
+
+    Ok((StatusCode::OK, Json(json!({"msg": "Account Created"}))))
+    // // Send email
+    // match send_email(&state.email_config, &message, email) {
+    //     Ok(_) => Ok((
+    //         StatusCode::OK,
+    //         Json(json!({"msg": "Account Created"}))
+    //     )),
+    //     Err(_) => Err((
+    //         StatusCode::NOT_ACCEPTABLE,
+    //         Json("Account Email Failed".to_string()),
+    //     )),
+    // }
 }
