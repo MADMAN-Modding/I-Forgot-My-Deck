@@ -1,8 +1,8 @@
 use std::{collections::HashSet, env};
 
 use sqlx::{
+    Pool, Row, Sqlite, 
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
-    Pool, Row, Sqlite,
 };
 
 use crate::{card::Card, constants, routes::accounts::Account};
@@ -32,8 +32,6 @@ pub async fn start_db() -> Pool<Sqlite> {
         .await
         .expect("Couldn't connect to database");
 
-
-
     match sqlx::migrate!("./migrations").run(&database).await {
         Ok(_) => {}
         Err(e) => eprintln!("Migration Error: {}", e),
@@ -56,7 +54,7 @@ pub async fn input_card(database: &Pool<Sqlite>, card: &Card) -> Result<(), sqlx
         r#"
         INSERT INTO card_name_to_id_cache (name, display_name, id, url, set_id)
         VALUES (?1, ?2, ?3, ?4, ?5)
-        "#
+        "#,
     )
     .bind(&card.name.to_lowercase())
     .bind(&card.display_name.as_deref().unwrap_or(""))
@@ -69,7 +67,11 @@ pub async fn input_card(database: &Pool<Sqlite>, card: &Card) -> Result<(), sqlx
     Ok(())
 }
 
-pub async fn check_card_exists_by_name(name_or_id: &str, set: &str, database: &Pool<Sqlite>) -> bool {
+pub async fn check_card_exists_by_name(
+    name_or_id: &str,
+    set: &str,
+    database: &Pool<Sqlite>,
+) -> bool {
     let query = r#"
         SELECT * FROM card_name_to_id_cache
         WHERE (name = ?1 OR id = ?1) AND set_id = ?2
@@ -84,7 +86,13 @@ pub async fn check_card_exists_by_name(name_or_id: &str, set: &str, database: &P
         .await
     {
         // Found an entry matching this id
-        Ok(v) => {if v.is_some() {true} else {false}},
+        Ok(v) => {
+            if v.is_some() {
+                true
+            } else {
+                false
+            }
+        }
         // Didn't find an entry matching this id
         Err(_) => false,
     }
@@ -114,25 +122,23 @@ pub async fn get_all_cached_cards(database: &Pool<Sqlite>) -> HashSet<String> {
     uids
 }
 
-pub async fn get_card_id_from_name(
-    database: &Pool<Sqlite>,
-    card_name: &str,
-) -> String {
+pub async fn get_card_id_from_name(database: &Pool<Sqlite>, card_name: &str) -> String {
     let row = match sqlx::query("SELECT id FROM card_name_to_id_cache WHERE name = ?1")
         .bind(card_name.to_lowercase())
         .fetch_one(&*database)
-        .await {
-            Ok(v) => v,
-            Err(e) => {println!("Error: {:?}", e); return String::new()},
-        };
+        .await
+    {
+        Ok(v) => v,
+        Err(e) => {
+            println!("Error: {:?}", e);
+            return String::new();
+        }
+    };
 
     row.get("id")
 }
 
-pub async fn get_card_by_id(
-    database: &Pool<Sqlite>,
-    card_id: &str,
-) -> Card {
+pub async fn get_card_by_id(database: &Pool<Sqlite>, card_id: &str) -> Card {
     let row = sqlx::query_as::<_, Card>(
         r#"
         SELECT * FROM card_name_to_id_cache
@@ -149,17 +155,15 @@ pub async fn get_card_by_id(
     row
 }
 
-
 // Begin Account Section
-
 
 /// Creates a new row in the DB for the account
 pub async fn add_account(database: &Pool<Sqlite>, account: &Account) -> Result<(), anyhow::Error> {
-       sqlx::query(
+    sqlx::query(
         r#"
         INSERT INTO accounts (display_name, id, salt, pass, email)
         VALUES (?1, ?2, ?3, ?4, ?5)
-        "#
+        "#,
     )
     .bind(&account.display_name)
     .bind(&account.id.to_lowercase())
@@ -187,8 +191,29 @@ pub async fn check_account_exists(database: &Pool<Sqlite>, account: &Account) ->
         .await
     {
         // Found an entry matching this id
-        Ok(v) => {if v.is_some() {true} else {false}},
+        Ok(v) => {
+            if v.is_some() {
+                true
+            } else {
+                false
+            }
+        }
         // Didn't find an entry matching this id
         Err(_) => false,
     }
+}
+
+pub async fn get_account(database: &Pool<Sqlite>, id: &String) -> Result<Account, sqlx::Error> {
+   let row = sqlx::query_as::<_, Account>(
+        r#"
+        SELECT * FROM accounts
+        WHERE id = ?1
+        LIMIT 1
+        "#,
+    )
+    .bind(id.to_lowercase())
+    .fetch_one(database)
+    .await;
+
+    row
 }

@@ -8,12 +8,11 @@ use reqwest::StatusCode;
 use serde_json::{Value, json};
 
 use crate::{
-    database::{add_account, check_account_exists},
-    email::{self, send_email},
-    state::AppState,
+    database::{add_account, check_account_exists, get_account}, email, state::AppState
 };
 
 #[tsync::tsync]
+#[derive(sqlx::FromRow, Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Account {
     pub display_name: String,
     pub id: String,
@@ -55,15 +54,17 @@ pub async fn make_account(
     let id: &str = &id;
     let email: &str = &email;
 
-    let hash_result = bcrypt::hash_with_result(pass, bcrypt::DEFAULT_COST).unwrap();
+    let mut salt = [0u8; 22];
 
-    let salt = hash_result.get_salt();
+    rand::fill(&mut salt);
 
-    let pass = hash_result.to_string();
+    let salt = String::from_utf8_lossy(&salt).to_string();
 
-    let account = Account::new(display_name, id, &pass, email, &salt);
+    let hash_pass = sha256::digest(format!("{}{}", salt, pass));
 
-    let message = format!("Hello, {display_name}!\n I hope you enjoy I Forgot My Deck!");
+    let account = Account::new(display_name, id, &hash_pass, email, &salt);
+
+    let _message = format!("Hello, {display_name}!\n I hope you enjoy I Forgot My Deck!");
 
     // Validate email
     if !email::validate_email(email) {
@@ -94,4 +95,24 @@ pub async fn make_account(
     //         Json("Account Email Failed".to_string()),
     //     )),
     // }
+}
+
+pub async fn auth_account(Path((id, pass)): Path<(String, String)>,
+    State(state): State<Arc<AppState>>,
+) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
+
+    let account = get_account(&state.database, &id).await.map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"msg":"Account doesn't exist or invalid login credentials"}))))?;
+
+    let salt = account.salt;
+    let hash_pass = account.pass;
+
+    let pass = sha256::digest(format!("{}{}", salt, pass));
+
+    if  pass == hash_pass {
+        Ok((StatusCode::OK, Json(json!({"token": "TOKEN"}))))
+    } else {
+        Err((StatusCode::BAD_REQUEST, Json(json!({"msg":"Account doesn't exist or invalid login credentials"}))))
+    }
+
+
 }
