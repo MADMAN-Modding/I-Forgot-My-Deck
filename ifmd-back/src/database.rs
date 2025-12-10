@@ -184,7 +184,7 @@ pub async fn check_account_exists(database: &Pool<Sqlite>, account: &Account) ->
         LIMIT 1
     "#;
 
-    match sqlx::query_scalar::<_, String>(query)
+    match sqlx::query_as::<_, Account>(query)
         .bind(account.id.to_lowercase())
         .bind(account.email.to_lowercase())
         .fetch_optional(&*database)

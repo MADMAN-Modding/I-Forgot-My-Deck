@@ -1,31 +1,84 @@
-import { useState } from 'react'
-import viteLogo from '/vite.svg'
+import { useState } from 'react';
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [form, setForm] = useState({
+    display_name: "",
+    username: "",
+    email: "",
+    password: ""
+  });
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+
+    try {
+      const response = await fetch(`http://127.0.0.1:3000/api/account/create/${encodeURIComponent(form.display_name)}/${form.username}/${form.email}/${form.password}`);
+
+      const data = await response.json();
+      console.log("Response:", data);
+
+      if (response.ok) {
+        alert("Registration Complete!");
+      } else {
+        alert("Registration Failed: " + data);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error: " + err.message);
+    }
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <form onSubmit={handleSubmit}>
+      <label>
+        Enter your display name:
+        <input
+          type="text"
+          name="display_name"
+          value={form.display_name}
+          onChange={handleChange}
+        />
+      </label>
+
+      <label>
+        Enter your username:
+        <input
+          type="text"
+          name="username"
+          value={form.username}
+          onChange={handleChange}
+        />
+      </label>
+
+      <label>
+        Enter your email:
+        <input
+          type="email"
+          name="email"
+          value={form.email}
+          onChange={handleChange}
+        />
+      </label>
+
+      <label>
+        Enter your password:
+        <input
+          type="password"
+          name="password"
+          value={form.password}
+          onChange={handleChange}
+        />
+      </label>
+
+      <input type="submit" value="Submit" />
+    </form>
+  );
 }
 
-export default App
+export default App;

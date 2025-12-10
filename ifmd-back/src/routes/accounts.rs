@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[tsync::tsync]
-#[derive(sqlx::FromRow, Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(sqlx::FromRow, Clone, Debug, serde::Serialize, serde::Deserialize, sqlx::Decode, sqlx::Encode)]
 pub struct Account {
     pub display_name: String,
     pub id: String,
@@ -80,7 +80,7 @@ pub async fn make_account(
             )),
         };
     } else {
-        return Err((StatusCode::INTERNAL_SERVER_ERROR, axum::Json("Error Making Account".to_string())))
+        return Err((StatusCode::BAD_REQUEST, axum::Json("Error Making Account".to_string())))
     }
 
     Ok((StatusCode::OK, Json(json!({"msg": "Account Created"}))))

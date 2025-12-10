@@ -23,8 +23,8 @@ async fn main() {
     // Define your router
     let app = Router::new()
         .route("/api/card/name/:card_name/:card_set", get(get_card_by_exact_name))
-        .route("/account/create/:display_name/:id/:email/:pass", get(make_account))
-        .route("/account/auth/:id/:pass", get(auth_account))
+        .route("/api/account/create/:display_name/:id/:email/:pass", get(make_account))
+        .route("/api/account/auth/:id/:pass", get(auth_account))
         .layer(CorsLayer::permissive())
         .with_state(app_state.clone());
 
