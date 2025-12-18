@@ -19,16 +19,18 @@ pub struct Account {
     pub pass: String,
     pub email: String,
     pub salt: String,
+    pub verified: bool,
 }
 
 impl Account {
-    pub fn new(display_name: &str, id: &str, pass: &str, email: &str, salt: &str) -> Account {
+    pub fn new(display_name: &str, id: &str, pass: &str, email: &str, salt: &str, verified: bool) -> Account {
         Account {
             display_name: display_name.to_string(),
             id: id.to_string(),
             pass: pass.to_string(),
             email: email.to_string(),
             salt: salt.to_string(),
+            verified
         }
     }
 
@@ -62,7 +64,7 @@ pub async fn make_account(
 
     let hash_pass = sha256::digest(format!("{}{}", salt, pass));
 
-    let account = Account::new(display_name, id, &hash_pass, email, &salt);
+    let account = Account::new(display_name, id, &hash_pass, email, &salt, false);
 
     let _message = format!("Hello, {display_name}!\n I hope you enjoy I Forgot My Deck!");
 
@@ -108,10 +110,34 @@ pub async fn auth_account(Path((id, pass)): Path<(String, String)>,
 
     let pass = sha256::digest(format!("{}{}", salt, pass));
 
-    if  pass == hash_pass {
-        Ok((StatusCode::OK, Json(json!({"token": "TOKEN"}))))
+    if pass == hash_pass {
+        if account.verified {
+            Ok((StatusCode::OK, Json(json!({"token": "TOKEN"}))))
+        } else {
+            Err((StatusCode::BAD_REQUEST, Json(json!({"msg":"Account not yet verified, please check your email, including the spam and trash."}))))
+        }
     } else {
         Err((StatusCode::BAD_REQUEST, Json(json!({"msg":"Account doesn't exist or invalid login credentials"}))))
+    }
+
+
+}
+
+pub async fn verify_account(Path((id, pass)): Path<(String, String)>,
+    State(state): State<Arc<AppState>>,
+) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
+
+    let account = get_account(&state.database, &id).await.map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"msg":"Invalid code"}))))?;
+
+    let salt = account.salt;
+    let hash_pass = account.pass;
+
+    let pass = sha256::digest(format!("{}{}", salt, pass));
+
+    if  pass == hash_pass {
+        Ok((StatusCode::OK, Json(json!({"msg": "Account verified"}))))
+    } else {
+        Err((StatusCode::BAD_REQUEST, Json(json!({"msg":"Invalid code"}))))
     }
 
 

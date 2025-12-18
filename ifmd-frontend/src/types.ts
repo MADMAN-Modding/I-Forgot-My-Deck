@@ -24,4 +24,5 @@ export interface Account {
   pass: string;
   email: string;
   salt: string;
+  verified: boolean;
 }

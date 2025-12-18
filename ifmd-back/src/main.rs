@@ -1,6 +1,6 @@
 use axum::{Router, routing::get};
 use ifmd_back::{constants, database, routes::{
-        accounts::{auth_account, make_account}, cards::get_card_by_exact_name
+        accounts::{auth_account, make_account, verify_account}, cards::get_card_by_exact_name
     }, state
 };
 use std::{net::SocketAddr, sync::Arc};
@@ -25,6 +25,7 @@ async fn main() {
         .route("/api/card/name/:card_name/:card_set", get(get_card_by_exact_name))
         .route("/api/account/create/:display_name/:id/:email/:pass", get(make_account))
         .route("/api/account/auth/:id/:pass", get(auth_account))
+        .route("/api/account/verify/:code", get(verify_account))
         .layer(CorsLayer::permissive())
         .with_state(app_state.clone());
 

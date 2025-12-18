@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './App.css'
 
-function App() {
+function CreateAccount() {
   const [form, setForm] = useState({
     display_name: "",
     username: "",
@@ -35,15 +35,14 @@ function App() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <><br></br><center><h1>Create an Account</h1></center><form onSubmit={handleSubmit}>
       <label>
         Enter your display name:
         <input
           type="text"
           name="display_name"
           value={form.display_name}
-          onChange={handleChange}
-        />
+          onChange={handleChange} />
       </label>
 
       <label>
@@ -52,8 +51,7 @@ function App() {
           type="text"
           name="username"
           value={form.username}
-          onChange={handleChange}
-        />
+          onChange={handleChange} />
       </label>
 
       <label>
@@ -62,8 +60,7 @@ function App() {
           type="email"
           name="email"
           value={form.email}
-          onChange={handleChange}
-        />
+          onChange={handleChange} />
       </label>
 
       <label>
@@ -72,13 +69,12 @@ function App() {
           type="password"
           name="password"
           value={form.password}
-          onChange={handleChange}
-        />
+          onChange={handleChange} />
       </label>
 
       <input type="submit" value="Submit" />
-    </form>
+    </form></>
   );
 }
 
-export default App;
+export default CreateAccount;
