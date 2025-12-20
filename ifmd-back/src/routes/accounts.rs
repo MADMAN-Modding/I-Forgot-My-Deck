@@ -8,7 +8,7 @@ use reqwest::StatusCode;
 use serde_json::{Value, json};
 
 use crate::{
-    database::{add_account, check_account_exists, get_account}, email, state::AppState
+    database::{self, add_account, check_account_exists, get_account}, email, state::AppState
 };
 
 #[tsync::tsync]
@@ -45,6 +45,77 @@ impl Account {
 
     pub fn print(&self) {
             println!("UserName: {}\nDisplayName: {}\nEmail: {}\nPassword: {}", self.id, self.display_name, self.email, self.display_name);
+    }
+}
+
+
+#[derive(sqlx::FromRow, Clone, Debug, serde::Serialize, serde::Deserialize, sqlx::Decode, sqlx::Encode)]
+pub struct Code {
+    pub code: String,
+    pub action: String,
+    pub data: String
+}
+
+impl Code {
+    fn parse_id(&self) -> String {
+        let arguments = self.parse_data();
+
+        for arg in arguments {
+            if arg.contains("id") {
+                // Unwrap as the server is generating the args
+                let key_break = arg.find(":").unwrap();
+
+                return arg[key_break+1..].to_string();
+            }
+        }
+
+        "".to_string()
+    }
+
+    fn parse_data(&self) -> Vec<String> {
+        let mut arguments: Vec<String> = Vec::new();
+
+        let mut data = self.data.clone();
+
+        loop {
+            let delimiter_pos = data.find(",");
+
+            if delimiter_pos.is_none() {
+                break;
+            }
+
+            let delimiter_pos = delimiter_pos.unwrap();
+
+            arguments.push(data[0..delimiter_pos].to_string());
+
+            data = data[(delimiter_pos+1)..].to_owned();
+        }
+
+        arguments
+    }
+
+    /// Makes a new Code
+    fn new(code: &str, action: Action, data: &str) -> Code {
+        Code {
+            code: code.to_string(),
+            action: action.to_string(),
+            data: data.to_string()
+        }
+    } 
+}
+
+enum Action {
+    VERIFY
+}
+
+impl Action {
+    /// Convert the Action to a String
+    fn to_string(&self) -> String {
+        let val = match self {
+            Action::VERIFY => "VERIFY"
+        };
+
+        val.to_string()
     }
 }
 
@@ -85,6 +156,21 @@ pub async fn make_account(
         return Err((StatusCode::BAD_REQUEST, axum::Json("Error Making Account".to_string())))
     }
 
+    let action = Action::VERIFY;
+
+    let code: Vec<u8> = rand::random_iter().take(1).collect();
+
+    let code = code[0].to_string();
+
+    let data = format!("id:{},", id);
+
+    println!("{}", code);
+
+    let code = Code::new(&code, action, &data);
+
+    // Add the code to the database
+    database::add_code(&state.database, code).await.unwrap();
+
     Ok((StatusCode::OK, Json(json!({"msg": "Account Created"}))))
     // // Send email
     // match send_email(&state.email_config, &message, email) {
@@ -123,22 +209,23 @@ pub async fn auth_account(Path((id, pass)): Path<(String, String)>,
 
 }
 
-pub async fn verify_account(Path((id, pass)): Path<(String, String)>,
+pub async fn verify_account(Path(code): Path<String>,
     State(state): State<Arc<AppState>>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
+    println!("??");
 
-    let account = get_account(&state.database, &id).await.map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"msg":"Invalid code"}))))?;
 
-    let salt = account.salt;
-    let hash_pass = account.pass;
+    let code: Code = match database::get_code(&state.database, &code).await {
+        Ok(v) => v,
+        Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"msg":"Code not found"})))) 
+    };
 
-    let pass = sha256::digest(format!("{}{}", salt, pass));
+    let id = code.parse_id();
 
-    if  pass == hash_pass {
-        Ok((StatusCode::OK, Json(json!({"msg": "Account verified"}))))
-    } else {
-        Err((StatusCode::BAD_REQUEST, Json(json!({"msg":"Invalid code"}))))
+    println!("{}", id);
+
+    match database::verify_account(&state.database, &id, code.code).await {
+        Ok(_) => Ok((StatusCode::OK, Json(json!({"msg": "verified"})))),        
+        Err(e)=> {println!("{e:?}"); Err((StatusCode::BAD_REQUEST, Json(json!({"msg":"Invalid code"}))))}
     }
-
-
 }

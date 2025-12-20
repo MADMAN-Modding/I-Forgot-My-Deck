@@ -1,0 +1,1 @@
+ALTER TABLE codes ADD data
