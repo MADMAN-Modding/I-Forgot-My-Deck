@@ -1,9 +1,12 @@
-pub mod cache;
-pub mod card;
 pub mod constants;
 pub mod database;
-pub mod email;
 pub mod json_handler;
+
+pub mod account {
+    pub mod account;
+    pub mod code;
+    pub mod email;
+}
 
 pub mod routes {
     pub mod accounts;
@@ -11,6 +14,11 @@ pub mod routes {
     pub mod ws;
 }
 
-pub mod parse_deck;
+pub mod deck {
+    pub mod cache;
+    pub mod card;
+    pub mod parse_deck;
+}
+
 pub mod queue;
 pub mod state;

@@ -1,5 +1,20 @@
 /* This file is generated and managed by tsync */
 
+export interface Account {
+  /** Name that will be displayed to other users */
+  display_name: string;
+  /** ID of the account to authenticate with */
+  id: string;
+  /** Password to the account */
+  pass: string;
+  /** Email associated with the account */
+  email: string;
+  /** Salt for the password */
+  salt: string;
+  /** Verified Status of the user */
+  verified: boolean;
+}
+
 export interface Card {
   /** Name of the card */
   name: string;
@@ -16,13 +31,4 @@ export interface Card {
 export interface Deck {
   /** List of cards in the deck */
   cards: Array<Card>;
-}
-
-export interface Account {
-  display_name: string;
-  id: string;
-  pass: string;
-  email: string;
-  salt: string;
-  verified: boolean;
 }

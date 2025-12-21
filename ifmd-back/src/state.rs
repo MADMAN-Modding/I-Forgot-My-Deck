@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Mutex};
 
 use tokio::sync::broadcast;
 
-use crate::{email::EmailConfig, json_handler::get_email_config, queue::QueueManager};
+use crate::{account::email::EmailConfig, json_handler::get_email_config, queue::QueueManager};
 
 pub struct AppState {
     pub fetch_queue: QueueManager,

@@ -7,7 +7,7 @@ use std::{
 
 use serde_json::{json, Value};
 
-use crate::{constants::get_email_config_path, email::EmailConfig};
+use crate::{constants::get_email_config_path, account::email::EmailConfig};
 
 /// Reads the config json and returns the value of the requested key
 ///

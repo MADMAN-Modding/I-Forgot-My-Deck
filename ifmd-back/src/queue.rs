@@ -6,7 +6,7 @@ use once_cell::sync::OnceCell;
 use serde_json::Value;
 use tokio::sync::oneshot;
 
-use crate::{cache, state};
+use crate::{deck::cache, state};
 
 pub struct QueueManager {
     pub queue: OnceCell<Arc<Mutex<Vec<QueueTask>>>>,

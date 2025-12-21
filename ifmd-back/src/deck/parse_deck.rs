@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::card::{Card};
+use crate::deck::card::Card;
 
 #[tsync::tsync]
 pub struct Deck {

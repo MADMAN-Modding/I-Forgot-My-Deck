@@ -6,9 +6,7 @@ use sqlx::{
 };
 
 use crate::{
-    card::Card,
-    constants,
-    routes::accounts::{Account, Code},
+    account::{account::Account, code::Code}, constants, deck::card::Card
 };
 
 /// Connects to the sqlite database and runs migrations

@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
-use crate::{card::Card, database, state::AppState};
+use crate::{deck::card::Card, database, state::AppState};
 use reqwest::header::{ACCEPT, USER_AGENT};
 use tokio::fs as tfs;
 
