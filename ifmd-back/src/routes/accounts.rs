@@ -6,9 +6,10 @@ use axum::{
 };
 use reqwest::StatusCode;
 use serde_json::{Value, json};
+use uuid::Uuid;
 
 use crate::{
-    database::{self, add_account, check_account_exists, get_account}, email, state::AppState
+    database::{self, add_account, check_account_exists, get_account}, email::{self, send_email}, state::AppState
 };
 
 #[tsync::tsync]
@@ -124,7 +125,7 @@ pub async fn make_account(
     State(state): State<Arc<AppState>>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<String>)> {
     let display_name: &str = &display_name;
-    let id: &str = &id;
+    let id: &str = &id.to_lowercase();
     let email: &str = &email;
 
     let mut salt = [0u8; 22];
@@ -136,8 +137,6 @@ pub async fn make_account(
     let hash_pass = sha256::digest(format!("{}{}", salt, pass));
 
     let account = Account::new(display_name, id, &hash_pass, email, &salt, false);
-
-    let _message = format!("Hello, {display_name}!\n I hope you enjoy I Forgot My Deck!");
 
     // Validate email
     if !email::validate_email(email) {
@@ -158,31 +157,29 @@ pub async fn make_account(
 
     let action = Action::VERIFY;
 
-    let code: Vec<u8> = rand::random_iter().take(1).collect();
-
-    let code = code[0].to_string();
+    let code = Uuid::new_v4().to_string();
 
     let data = format!("id:{},", id);
 
-    println!("{}", code);
-
-    let code = Code::new(&code, action, &data);
+    let code_struct = Code::new(&code, action, &data);
 
     // Add the code to the database
-    database::add_code(&state.database, code).await.unwrap();
+    database::add_code(&state.database, code_struct).await.unwrap();
 
-    Ok((StatusCode::OK, Json(json!({"msg": "Account Created"}))))
-    // // Send email
-    // match send_email(&state.email_config, &message, email) {
-    //     Ok(_) => Ok((
-    //         StatusCode::OK,
-    //         Json(json!({"msg": "Account Created"}))
-    //     )),
-    //     Err(_) => Err((
-    //         StatusCode::NOT_ACCEPTABLE,
-    //         Json("Account Email Failed".to_string()),
-    //     )),
-    // }
+    // Message to be emailed
+    let message = format!("<h1>Hello, {display_name}!</h1>\n<p>I hope you enjoy I Forgot My Deck!</p>\n<a href='http://localhost:5173/verify/{code}'>Verify your account here</a>");
+    
+    // Send email
+    match send_email(&state.email_config, &message, email) {
+        Ok(_) => Ok((
+            StatusCode::OK,
+            Json(json!({"msg": "Account Created"}))
+        )),
+        Err(_) => Err((
+            StatusCode::NOT_ACCEPTABLE,
+            Json("Account Email Failed".to_string()),
+        )),
+    }
 }
 
 pub async fn auth_account(Path((id, pass)): Path<(String, String)>,
@@ -212,9 +209,6 @@ pub async fn auth_account(Path((id, pass)): Path<(String, String)>,
 pub async fn verify_account(Path(code): Path<String>,
     State(state): State<Arc<AppState>>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    println!("??");
-
-
     let code: Code = match database::get_code(&state.database, &code).await {
         Ok(v) => v,
         Err(_) => return Err((StatusCode::BAD_REQUEST, Json(json!({"msg":"Code not found"})))) 
@@ -222,10 +216,8 @@ pub async fn verify_account(Path(code): Path<String>,
 
     let id = code.parse_id();
 
-    println!("{}", id);
-
     match database::verify_account(&state.database, &id, code.code).await {
         Ok(_) => Ok((StatusCode::OK, Json(json!({"msg": "verified"})))),        
-        Err(e)=> {println!("{e:?}"); Err((StatusCode::BAD_REQUEST, Json(json!({"msg":"Invalid code"}))))}
+        Err(_)=> Err((StatusCode::BAD_REQUEST, Json(json!({"msg":"Invalid code"}))))
     }
 }

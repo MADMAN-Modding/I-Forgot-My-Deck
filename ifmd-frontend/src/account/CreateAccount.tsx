@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import './App.css'
+import './Account.css'
 
 function CreateAccount() {
   const [form, setForm] = useState({
@@ -24,7 +24,7 @@ function CreateAccount() {
       console.log("Response:", data);
 
       if (response.ok) {
-        alert("Registration Complete!");
+        alert("Registration Complete!\nPlease check your email for verification.");
       } else {
         alert("Registration Failed: " + data);
       }
@@ -44,6 +44,17 @@ function CreateAccount() {
           value={form.display_name}
           onChange={handleChange} />
       </label>
+      <br></br>
+      
+      <label>
+        Enter your email:
+        <input
+          type="email"
+          name="email"
+          value={form.email}
+          onChange={handleChange} />
+      </label>
+      <br></br>
 
       <label>
         Enter your username:
@@ -53,15 +64,7 @@ function CreateAccount() {
           value={form.username}
           onChange={handleChange} />
       </label>
-
-      <label>
-        Enter your email:
-        <input
-          type="email"
-          name="email"
-          value={form.email}
-          onChange={handleChange} />
-      </label>
+      <br></br>
 
       <label>
         Enter your password:

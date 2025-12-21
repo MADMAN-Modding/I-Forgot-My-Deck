@@ -1,11 +1,15 @@
 use std::{collections::HashSet, env};
 
 use sqlx::{
-    Pool, Row, Sqlite, 
+    Pool, Row, Sqlite,
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
 };
 
-use crate::{card::Card, constants, routes::accounts::{Account, Code}};
+use crate::{
+    card::Card,
+    constants,
+    routes::accounts::{Account, Code},
+};
 
 /// Connects to the sqlite database and runs migrations
 ///
@@ -204,7 +208,7 @@ pub async fn check_account_exists(database: &Pool<Sqlite>, account: &Account) ->
 }
 
 pub async fn get_account(database: &Pool<Sqlite>, id: &String) -> Result<Account, sqlx::Error> {
-   let row = sqlx::query_as::<_, Account>(
+    let row = sqlx::query_as::<_, Account>(
         r#"
         SELECT * FROM accounts
         WHERE id = ?1
@@ -219,23 +223,32 @@ pub async fn get_account(database: &Pool<Sqlite>, id: &String) -> Result<Account
 }
 
 /// Verify an account
-pub async fn verify_account(database: &Pool<Sqlite>, id: &String, code: String) -> Result<(), sqlx::Error> {
-   sqlx::query(
+pub async fn verify_account(
+    database: &Pool<Sqlite>,
+    id: &String,
+    code: String,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
         r#"
         UPDATE accounts
         SET verified = TRUE
         WHERE id = ?1
         "#,
     )
-    .bind(id.to_lowercase()).execute(database).await?;
+    .bind(id.to_lowercase())
+    .execute(database)
+    .await?;
 
-   sqlx::query(
-    r#"
+    sqlx::query(
+        r#"
         DELETE FROM codes
         WHERE code = ?1
-    "#
-   ).bind(code).execute(database).await?; 
-    
+    "#,
+    )
+    .bind(code)
+    .execute(database)
+    .await?;
+
     Ok(())
 }
 
@@ -257,10 +270,9 @@ pub async fn add_code(database: &Pool<Sqlite>, code: Code) -> Result<(), sqlx::E
     Ok(())
 }
 
-
 /// Get code action and data from a code
 pub async fn get_code(database: &Pool<Sqlite>, code: &String) -> Result<Code, sqlx::Error> {
-   let row = sqlx::query_as::<_, Code>(
+    sqlx::query_as::<_, Code>(
         r#"
         SELECT * FROM codes
         WHERE code = ?1
@@ -269,9 +281,5 @@ pub async fn get_code(database: &Pool<Sqlite>, code: &String) -> Result<Code, sq
     )
     .bind(code)
     .fetch_one(database)
-    .await;
-
-    println!("Row len: {:?}", row);
-
-    row
+    .await
 }

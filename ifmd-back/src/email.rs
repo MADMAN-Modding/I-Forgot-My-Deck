@@ -1,5 +1,7 @@
+use core::fmt;
+
 use email_address_parser::EmailAddress;
-use lettre::{Message, SmtpTransport, Transport, transport::smtp::authentication::Credentials};
+use lettre::{Message, SmtpTransport, Transport, message::header::ContentType, transport::smtp::authentication::Credentials};
 
 /// Configuration structure for the application
 /// Holds email settings, recipient info, check interval, and IP address.
@@ -75,6 +77,13 @@ impl EmailConfig {
     }
 }
 
+/// Implement Display trait for Card
+impl fmt::Display for EmailConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}\n{}\n{}\n{}\n", self.email_address, self.username, self.email_smtp_host, self.email_smtp_port)
+    }
+}
+
 pub fn send_email(
     config: &EmailConfig,
     message: &str,
@@ -89,6 +98,7 @@ pub fn send_email(
         )
         .to(format!("{}", recipient).parse().unwrap())
         .subject("Welcome to I Forgot My Deck")
+        .header(ContentType::TEXT_HTML)
         .body(format!("{}", message))
         .unwrap();
 
@@ -103,7 +113,7 @@ pub fn send_email(
 
     // Send the email
     match mailer.send(&email) {
-        Ok(_) => println!("Email sent successfully!"),
+        Ok(_) => {},
         Err(e) => eprintln!("Could not send email: {:?}", e),
     };
     Ok(())
