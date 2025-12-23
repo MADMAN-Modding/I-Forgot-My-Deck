@@ -1,5 +1,4 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import './Account.css'
 import { useEffect, useState } from 'react';
 
 function Verify() {
@@ -51,14 +50,19 @@ function Verify() {
         return () => clearTimeout(timer);
     }, [status, navigate])
 
-    if (status == 'loading') return <div>Verifying...</div>
-    if (status === 'success') return <div>Verified! Redirecting to authentication in 5 seconds...</div>;
+    let msg = ""
+
+    if (status == 'loading') {msg = "Verifying..."}
+    if (status === 'success') {msg = "Verified! Redirecting to authentication in 5 seconds..."}
+
+    if (status == "loading" || status == "success") {
+        return <div className='text-white text-center mt-5 text-5xl'>{msg}</div>
+    }
 
     return (
-        <div>
-        Account Authentication Failed: {message}
-        <br />
-        Redirecting to home in 5 seconds...
+        <div className='text-white text-center font-bold mt-5 text-4xl grid grid-cols-1'>
+        <p>Account Authentication Failed: {message}</p>
+        <p>Redirecting to home in 5 seconds...</p>
         </div>
     );
 }
