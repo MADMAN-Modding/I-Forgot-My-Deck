@@ -35,48 +35,57 @@ function CreateAccount() {
   }
 
   return (
-    <><br></br><center><h1>Create an Account</h1></center><form onSubmit={handleSubmit}>
-      <label>
-        Enter your display name:
-        <input
-          type="text"
-          name="display_name"
-          value={form.display_name}
-          onChange={handleChange} />
-      </label>
-      <br></br>
-      
-      <label>
-        Enter your email:
-        <input
-          type="email"
-          name="email"
-          value={form.email}
-          onChange={handleChange} />
-      </label>
-      <br></br>
+    <><br></br><center><h1 className='text-center mt-5 font-bold text-5xl mb-20 text-white'>Create an Account</h1></center>
+      <div className='text-center text-xl'>
+        <form onSubmit={handleSubmit} className='text-white'>
+          <label>
+            Enter your display name:
+            <input
+              className='bg-(--main-color) rounded-xl mb-2'
+              type="text"
+              name="display_name"
+              value={form.display_name}
+              onChange={handleChange} />
+          </label>
+          <br></br>
 
-      <label>
-        Enter your username:
-        <input
-          type="text"
-          name="username"
-          value={form.username}
-          onChange={handleChange} />
-      </label>
-      <br></br>
+          <label>
+            Enter your email:
+            <input
+              className='bg-(--main-color) rounded-xl mb-2'
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange} />
+          </label>
+          <br></br>
 
-      <label>
-        Enter your password:
-        <input
-          type="password"
-          name="password"
-          value={form.password}
-          onChange={handleChange} />
-      </label>
+          <label>
+            Enter your username:
+            <input
+              className='bg-(--main-color) rounded-xl mb-2'
+              type="text"
+              name="username"
+              value={form.username}
+              onChange={handleChange} />
+          </label>
+          <br></br>
 
-      <input type="submit" value="Submit" />
-    </form></>
+          <label>
+            Enter your password:
+            <input
+              className='bg-(--main-color) rounded-xl mb-2'
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={handleChange} />
+          </label>
+
+          <br></br>
+
+          <input type="submit" className='mt-10 bg-(--main-color) rounded-lg p-1' value="Submit" />
+        </form>
+      </div></>
   );
 }
 

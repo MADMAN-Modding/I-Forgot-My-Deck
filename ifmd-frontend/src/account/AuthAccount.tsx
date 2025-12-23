@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function App() {
   const [form, setForm] = useState({
@@ -7,6 +8,11 @@ function App() {
     email: "",
     password: ""
   });
+
+  const [message, setMessage] = useState("message")
+
+  const navigate = useNavigate();
+
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -22,8 +28,11 @@ function App() {
       const data = await response.json();
       console.log("Response:", data);
 
+      // If the account was authenticated set the message to auth and redirect to the root page
       if (response.ok) {
-        alert("Account Authenticated!");
+        setMessage("auth")
+
+        setTimeout(() => {navigate("/")}, 3000)
       } else {
         alert("Account Authentication Failed: " + data["msg"]);
       }
@@ -33,29 +42,40 @@ function App() {
     }
   }
 
-  return (
-    <><center><h1>Auth</h1></center><form onSubmit={handleSubmit}>
-      <label>
-        Enter your username:
-        <input
-          type="text"
-          name="username"
-          value={form.username}
-          onChange={handleChange} />
-      </label>
+  if (message == "message") {
+    return <><h1 className='text-center m-auto font-bold text-5xl mb-20 mt-5 text-white'>Authentication</h1>
+    <div className='text-center text-white text-xl'>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Enter your username:
+          <input
+            className='bg-(--main-color) rounded-xl mb-2'
+            type="text"
+            name="username"
+            value={form.username}
+            onChange={handleChange} />
+        </label>
 
-      <label>
-        Enter your password:
-        <input
-          type="password"
-          name="password"
-          value={form.password}
-          onChange={handleChange} />
-      </label>
+        <br></br>
+        <label>
+          Enter your password:
+          <input
+            className='bg-(--main-color) rounded-xl mb-2'
+            type="password"
+            name="password"
+            value={form.password}
+            onChange={handleChange} />
+        </label>
 
-      <input type="submit" value="Submit" />
-    </form></>
-  );
+        <br></br>
+
+        <input type="submit" className='mt-10 bg-(--main-color) rounded-lg p-1' value="Submit" />
+      </form>
+    </div>
+    </>
+  } else if (message == "auth") {
+    return <center><h1 className='text-center font-bold text-7xl text-white mt-20'>Account Authenticated!</h1></center>
+  }
 }
 
 export default App;

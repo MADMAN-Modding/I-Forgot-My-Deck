@@ -1,13 +1,13 @@
-import "./App.css";
 import {
     BrowserRouter as Router,
     Routes,
     Route,
     Navigate,
 } from "react-router-dom";
-import Home from "./account/AuthAccount.tsx";
+import Home from "./home/Home.tsx";
 import Verify from "./account/VerifyAccount.tsx";
 import Create from "./account/CreateAccount.tsx";
+import Auth from "./account/AuthAccount.tsx";
 
 function App() {
     return (
@@ -25,6 +25,10 @@ function App() {
                     <Route
                         path="/account/create"
                         element={<Create />}
+                    />
+                    <Route
+                        path="/account/auth"
+                        element={<Auth />}
                     />
                     <Route
                         path="*"
