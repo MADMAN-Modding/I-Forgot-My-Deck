@@ -10,7 +10,7 @@ use serde_json::{Value, json};
 use uuid::Uuid;
 
 use crate::{
-    account::{account::Account, code::{Action, Code}, email::{self, send_email}, token::Token}, database::{self, add_account, add_token, check_account_exists, check_token, get_account}, state::AppState
+    account::{account::Account, code::{Action, Code}, email::{self, send_email}, token::Token}, database::{self, add_account, add_token, check_account_exists, check_token, get_account, reset_token_time}, state::AppState
 };
 
 pub async fn make_account(
@@ -137,6 +137,8 @@ pub async fn token_auth(Path(token): Path<String>,
 
     match check_token(&state.database, token).await {
         Ok(token) => {
+            reset_token_time(&state.database, &token.token).await.unwrap();
+
             let account = get_account(&state.database, &token.id).await.unwrap();
 
             let payload = account.strip().to_json();

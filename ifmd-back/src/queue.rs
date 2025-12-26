@@ -6,7 +6,7 @@ use once_cell::sync::OnceCell;
 use serde_json::Value;
 use tokio::sync::oneshot;
 
-use crate::{deck::cache, state};
+use crate::{constants, deck::cache, state};
 
 pub struct QueueManager {
     pub queue: OnceCell<Arc<Mutex<Vec<QueueTask>>>>,
@@ -56,8 +56,6 @@ impl fmt::Display for QueueType {
     }
 }
 
-static QUEUE_DELAY_MS: u64 = 150;
-
 /// Get the next item from the queue
 pub fn next_queue_item(queue: &mut Vec<QueueTask>) -> Option<QueueTask> {
     if queue.is_empty() {
@@ -77,7 +75,7 @@ pub async fn manage_queue(state: Arc<state::AppState>) {
         let queue_manager = &state.fetch_queue;
 
         if queue_manager.queue.get().unwrap().lock().await.is_empty() {
-            tokio::time::sleep(std::time::Duration::from_millis(QUEUE_DELAY_MS)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(constants::SCRY_DELAY)).await;
         } else {
             let queue = &mut queue_manager.queue.get().unwrap().lock().await;
 
@@ -121,7 +119,7 @@ pub async fn manage_queue(state: Arc<state::AppState>) {
                         task.queue_type, task.identifier, task.set
                     );
 
-                    tokio::time::sleep(std::time::Duration::from_millis(QUEUE_DELAY_MS)).await;
+                    tokio::time::sleep(std::time::Duration::from_millis(constants::SCRY_DELAY)).await;
                 }
                 None => {}
             }

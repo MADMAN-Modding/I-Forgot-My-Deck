@@ -5,17 +5,17 @@ use once_cell::sync::OnceCell;
 
 static PROJ_DIRS: OnceCell<ProjectDirs> = OnceCell::new();
 
-// Client
-pub const LOOP_TIME_SECONDS: u64 = 120;
+/// Time when the token will expire (mins)
+pub const TOKEN_EXPIRATION: i64 = 48 * 60;
 
-//Server
-pub const DOWN_SAMPLE_POINTS: u16 = 40;
-pub const OUTLIER_THRESHOLD: f64 = 0.5;
-pub const DO_INTERPOLATION: bool = true;
-pub const INTERPOLATION_STEPS: u16 = 64;
+/// Time when verification codes will expire (mins)
+pub const CODE_EXPIRATION: i64 = 30;
 
-pub const BUFFER_SIZE: usize = 4096;
+/// How long to delay between cleanings (mins)
+pub const CLEAN_DELAY: u64 = 5;
 
+/// How long to delay between scryfall API requests (millis)
+pub const SCRY_DELAY: u64 = 150;
 
 pub fn setup() {
     PROJ_DIRS

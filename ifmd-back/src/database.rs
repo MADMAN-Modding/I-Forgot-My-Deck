@@ -1,5 +1,6 @@
 use std::{collections::HashSet, env};
 
+use chrono::{Timelike, Utc};
 use sqlx::{
     FromRow, Pool, Row, Sqlite,
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
@@ -318,6 +319,26 @@ pub async fn check_token(database: &Pool<Sqlite>, token: String) -> Result<Token
     .bind(token)
     .fetch_one(database)
     .await
+}
+
+/// Reset the time on a token to the current time to prevent deletion
+pub async fn reset_token_time(database: &Pool<Sqlite>, token: &str) -> Result<(), sqlx::Error> {
+    // Gets the current time and removes any nanoseconds from the end
+    let time = Utc::now().naive_utc().with_nanosecond(0).unwrap();
+
+    sqlx::query(
+        r#"
+        UPDATE tokens
+        SET time = ?1
+        WHERE token = ?2
+        "#,
+    )
+    .bind(time.to_string())
+    .bind(token)
+    .execute(database)
+    .await?;
+
+    Ok(())
 }
 
 /// Get all tables from a specified row
