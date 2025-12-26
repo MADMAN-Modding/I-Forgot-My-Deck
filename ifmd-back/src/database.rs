@@ -6,7 +6,7 @@ use sqlx::{
 };
 
 use crate::{
-    account::{account::Account, code::Code}, constants, deck::card::Card
+    account::{account::Account, code::Code, token::Token}, constants, deck::card::Card
 };
 
 /// Connects to the sqlite database and runs migrations
@@ -280,4 +280,37 @@ pub async fn get_code(database: &Pool<Sqlite>, code: &String) -> Result<Code, sq
     .bind(code)
     .fetch_one(database)
     .await
+}
+
+// Begin Tokens
+pub async fn add_token(database: &Pool<Sqlite>, token: Token) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        INSERT INTO tokens (id, token)
+        VALUES (?1, ?2)
+        "#,
+    )
+    .bind(&token.id)
+    .bind(&token.token)
+    .execute(&*database)
+    .await?;
+
+    Ok(())
+}
+
+/// Get code action and data from a code
+pub async fn check_token(database: &Pool<Sqlite>, token: Token) -> Result<(), sqlx::Error> {
+    sqlx::query_as::<_, Token>(
+        r#"
+        SELECT * FROM tokens
+        WHERE id = ?1 AND token = ?2
+        LIMIT 1
+        "#,
+    )
+    .bind(token.id)
+    .bind(token.token)
+    .fetch_one(database)
+    .await?;
+
+    Ok(())
 }

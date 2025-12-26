@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use uuid::Uuid;
 
 use crate::{
-    account::{account::Account, code::{Action, Code}, email::{self, send_email}}, database::{self, add_account, check_account_exists, get_account}, state::AppState
+    account::{account::Account, code::{Action, Code}, email::{self, send_email}, token::Token}, database::{self, add_account, add_token, check_account_exists, check_token, get_account}, state::AppState
 };
 
 pub async fn make_account(
@@ -19,6 +19,11 @@ pub async fn make_account(
     let display_name: &str = &display_name;
     let id: &str = &id.to_lowercase();
     let email: &str = &email;
+
+    // Validate email
+    if !email::validate_email(email) {
+        return Err((StatusCode::BAD_REQUEST, Json("Invalid Email".to_string())));
+    }
 
     let mut salt = [0u8; 22];
 
@@ -30,10 +35,6 @@ pub async fn make_account(
 
     let account = Account::new(display_name, id, &hash_pass, email, &salt, false);
 
-    // Validate email
-    if !email::validate_email(email) {
-        return Err((StatusCode::BAD_REQUEST, Json("Invalid Email".to_string())));
-    }
 
     if !check_account_exists(&state.database, &account).await {
         match add_account(&state.database, &account).await {
@@ -87,7 +88,16 @@ pub async fn auth_account(Path((id, pass)): Path<(String, String)>,
 
     if pass == hash_pass {
         if account.verified {
-            Ok((StatusCode::OK, Json(json!({"token": "TOKEN"}))))
+            let token = Uuid::new_v4();
+
+            let token = Token::new(&id, &token.to_string());
+
+            match add_token(&state.database, token.clone()).await {
+                Ok(_) => {},
+                Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"msg": "failed generating token"}))))
+            };
+
+            Ok((StatusCode::OK, Json(json!({"token": token.token}))))
         } else {
             Err((StatusCode::BAD_REQUEST, Json(json!({"msg":"Account not yet verified, please check your email, including the spam and trash."}))))
         }
@@ -113,3 +123,21 @@ pub async fn verify_account(Path(code): Path<String>,
         Err(_)=> Err((StatusCode::BAD_REQUEST, Json(json!({"msg":"Invalid code"}))))
     }
 }
+
+/// Authenticate with a token
+pub async fn token_auth(Path((id, token)): Path<(String, String)>,
+    State(state): State<Arc<AppState>>,
+) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
+    let token = Token::new(&id, &token);
+
+    match check_token(&state.database, token).await {
+        Ok(_) => {
+            let account = get_account(&state.database, &id).await.unwrap();
+
+            let payload = account.strip().to_json();
+
+            Ok((StatusCode::OK, Json(payload)))
+        },
+        Err(_) => Err((StatusCode::BAD_REQUEST, Json(json!({"msg":"invalid_token"}))) ),
+    }
+} 

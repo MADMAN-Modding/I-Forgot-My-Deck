@@ -6,6 +6,7 @@ pub mod account {
     pub mod account;
     pub mod code;
     pub mod email;
+    pub mod token;
 }
 
 pub mod routes {

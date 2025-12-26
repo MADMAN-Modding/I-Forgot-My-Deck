@@ -15,6 +15,13 @@ export interface Account {
   verified: boolean;
 }
 
+export interface Token {
+  /** ID of the account to associate with the token */
+  id: string;
+  /** Token to associate with the account */
+  token: string;
+}
+
 export interface Card {
   /** Name of the card */
   name: string;
