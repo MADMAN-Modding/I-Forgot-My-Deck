@@ -125,14 +125,13 @@ pub async fn verify_account(Path(code): Path<String>,
 }
 
 /// Authenticate with a token
-pub async fn token_auth(Path((id, token)): Path<(String, String)>,
+pub async fn token_auth(Path(token): Path<String>,
     State(state): State<Arc<AppState>>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    let token = Token::new(&id, &token);
 
     match check_token(&state.database, token).await {
-        Ok(_) => {
-            let account = get_account(&state.database, &id).await.unwrap();
+        Ok(token) => {
+            let account = get_account(&state.database, &token.id).await.unwrap();
 
             let payload = account.strip().to_json();
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Cookies from 'js-cookie';
 
 function App() {
   const [form, setForm] = useState({
@@ -31,6 +32,8 @@ function App() {
       // If the account was authenticated set the message to auth and redirect to the root page
       if (response.ok) {
         setMessage("auth")
+
+        Cookies.set('token', data["token"])
 
         setTimeout(() => {navigate("/")}, 3000)
       } else {

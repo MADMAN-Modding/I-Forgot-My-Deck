@@ -299,18 +299,15 @@ pub async fn add_token(database: &Pool<Sqlite>, token: Token) -> Result<(), sqlx
 }
 
 /// Get code action and data from a code
-pub async fn check_token(database: &Pool<Sqlite>, token: Token) -> Result<(), sqlx::Error> {
+pub async fn check_token(database: &Pool<Sqlite>, token: String) -> Result<Token, sqlx::Error> {
     sqlx::query_as::<_, Token>(
         r#"
         SELECT * FROM tokens
-        WHERE id = ?1 AND token = ?2
+        WHERE token = ?1
         LIMIT 1
         "#,
     )
-    .bind(token.id)
-    .bind(token.token)
+    .bind(token)
     .fetch_one(database)
-    .await?;
-
-    Ok(())
+    .await
 }

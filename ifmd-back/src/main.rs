@@ -26,7 +26,7 @@ async fn main() {
         .route("/api/account/create/:display_name/:id/:email/:pass", get(make_account))
         .route("/api/account/auth/:id/:pass", get(auth_account))
         .route("/api/account/verify/:code", get(verify_account))
-        .route("/api/account/token/:id/:token", get(token_auth))
+        .route("/api/account/token/:token", get(token_auth))
         .layer(CorsLayer::permissive())
         .with_state(app_state.clone());
 
