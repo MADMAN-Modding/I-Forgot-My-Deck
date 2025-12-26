@@ -1,5 +1,6 @@
 pub mod constants;
 pub mod database;
+pub mod db_cleaner;
 pub mod json_handler;
 
 pub mod account {

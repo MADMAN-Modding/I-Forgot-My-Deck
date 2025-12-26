@@ -12,12 +12,16 @@ async fn main() {
 
     let db = database::start_db().await;
 
-    let app_state = Arc::new(state::AppState::new(db));
+    let app_state = Arc::new(state::AppState::new(db.clone()));
 
     // Spawn queue thread
     let state_clone = app_state.clone();
     tokio::spawn(async move {
         ifmd_back::queue::manage_queue(state_clone).await;
+    });
+
+    tokio::spawn(async move {
+        ifmd_back::db_cleaner::run_clean(db).await;
     });
 
     // Define your router
@@ -38,6 +42,5 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
-
 
 }

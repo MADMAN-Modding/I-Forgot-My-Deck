@@ -20,6 +20,8 @@ export interface Token {
   id: string;
   /** Token to associate with the account */
   token: string;
+  /** Time the token was created */
+  time: string;
 }
 
 export interface Card {

@@ -1,13 +1,21 @@
 use std::{collections::HashSet, env};
 
 use sqlx::{
-    Pool, Row, Sqlite,
+    FromRow, Pool, Row, Sqlite,
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
 };
 
 use crate::{
-    account::{account::Account, code::Code, token::Token}, constants, deck::card::Card
+    account::{account::Account, code::Code, token::Token},
+    constants,
+    deck::card::Card,
 };
+
+/// Trait for structs that can be deleted from the database
+pub trait Deletable {
+    /// Returns the column name and value used to identify the row
+    fn delete_key(&self) -> (&str, &str);
+}
 
 /// Connects to the sqlite database and runs migrations
 ///
@@ -310,4 +318,35 @@ pub async fn check_token(database: &Pool<Sqlite>, token: String) -> Result<Token
     .bind(token)
     .fetch_one(database)
     .await
+}
+
+/// Get all tables from a specified row
+pub async fn get_all_rows<T>(database: &Pool<Sqlite>, table: &str) -> Result<Vec<T>, sqlx::Error>
+where
+    for<'r> T: FromRow<'r, sqlx::sqlite::SqliteRow> + Send + Unpin,
+{
+    let query = format!("SELECT * FROM {}", table);
+
+    sqlx::query_as::<_, T>(&query).fetch_all(database).await
+}
+
+pub async fn delete_row<T>(
+    database: &Pool<Sqlite>,
+    table: &str,
+    row: &T,
+) -> Result<u64, sqlx::Error>
+where
+    T: Deletable,
+{
+    let allowed_tables = ["codes", "tokens"];
+    if !allowed_tables.contains(&table) {
+        panic!("Table not allowed: {}", table);
+    }
+
+    let (col, val) = row.delete_key();
+    let query = format!("DELETE FROM {} WHERE {} = ?", table, col);
+
+    let result = sqlx::query(&query).bind(val).execute(database).await?;
+
+    Ok(result.rows_affected())
 }

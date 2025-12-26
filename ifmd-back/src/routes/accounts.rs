@@ -4,6 +4,7 @@ use axum::{
     Json,
     extract::{Path, State},
 };
+use chrono::Utc;
 use reqwest::StatusCode;
 use serde_json::{Value, json};
 use uuid::Uuid;
@@ -54,7 +55,9 @@ pub async fn make_account(
 
     let data = format!("id:{},", id);
 
-    let code_struct = Code::new(&code, action, &data);
+    let time = Utc::now().naive_utc();
+
+    let code_struct = Code::new(&code, action, &data, time);
 
     // Add the code to the database
     database::add_code(&state.database, code_struct).await.unwrap();
@@ -78,6 +81,7 @@ pub async fn make_account(
 pub async fn auth_account(Path((id, pass)): Path<(String, String)>,
     State(state): State<Arc<AppState>>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
+    let id = id.to_lowercase();
 
     let account = get_account(&state.database, &id).await.map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"msg":"Account doesn't exist or invalid login credentials"}))))?;
 
@@ -90,7 +94,9 @@ pub async fn auth_account(Path((id, pass)): Path<(String, String)>,
         if account.verified {
             let token = Uuid::new_v4();
 
-            let token = Token::new(&id, &token.to_string());
+            let time = Utc::now().naive_utc();
+
+            let token = Token::new(&id, &token.to_string(), time);
 
             match add_token(&state.database, token.clone()).await {
                 Ok(_) => {},

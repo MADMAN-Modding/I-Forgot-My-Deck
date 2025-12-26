@@ -1,11 +1,17 @@
-#[derive(sqlx::FromRow, Clone, Debug, serde::Serialize, serde::Deserialize, sqlx::Decode, sqlx::Encode)]
+use chrono::NaiveDateTime;
+
+use crate::database::Deletable;
+
+#[derive(sqlx::FromRow, Clone, Debug, sqlx::Decode, sqlx::Encode)]
 pub struct Code {
     /// Code to be used to search the database
     pub code: String,
     /// Action to perform once the code is found
     pub action: String,
     /// Data to use for the action
-    pub data: String
+    pub data: String,
+    /// Time teh code was created
+    pub time: String
 }
 
 impl Code {
@@ -47,13 +53,25 @@ impl Code {
     }
 
     /// Makes a new Code
-    pub fn new(code: &str, action: Action, data: &str) -> Code {
+    pub fn new(code: &str, action: Action, data: &str, time: NaiveDateTime) -> Code {
         Code {
             code: code.to_string(),
             action: action.to_string(),
-            data: data.to_string()
+            data: data.to_string(),
+            time: time.to_string()
         }
-    } 
+    }
+
+    /// Parse the SQLite timestamp to NaiveDateTIme (UTC)
+    pub fn created_datetime(&self) -> NaiveDateTime {
+        NaiveDateTime::parse_from_str(&self.time, "%Y-%m-%d %H:%M:%S").expect("Invalid timestamp in DB")
+    }
+}
+
+impl Deletable for Code {
+    fn delete_key(&self) -> (&str, &str) {
+        ("code", &self.code)
+    }
 }
 
 pub enum Action {
