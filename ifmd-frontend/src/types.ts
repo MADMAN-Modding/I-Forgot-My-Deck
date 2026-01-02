@@ -35,6 +35,8 @@ export interface Card {
   url: string;
   /** Set the card belongs to */
   set_id?: string;
+  /** Amount of the card */
+  card_amount: number;
 }
 
 export interface Deck {

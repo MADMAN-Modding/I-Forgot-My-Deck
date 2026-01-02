@@ -8,6 +8,7 @@ import Home from "./home/Home.tsx";
 import Verify from "./account/VerifyAccount.tsx";
 import Create from "./account/CreateAccount.tsx";
 import Auth from "./account/AuthAccount.tsx";
+import CreateDeck from "./decks/CreateDeck.tsx";
 
 function App() {
     return (
@@ -29,6 +30,10 @@ function App() {
                     <Route
                         path="/account/auth"
                         element={<Auth />}
+                    />
+                    <Route
+                        path="/deck/create"
+                        element={<CreateDeck/>}
                     />
                     <Route
                         path="*"

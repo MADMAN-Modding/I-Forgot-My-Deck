@@ -5,16 +5,12 @@
 }
 
 html {
-  background: linear-gradient(black, black, var(--main-color));
+  background: linear-gradient(black, black, var(--main-color)) fixed;
   background-size: 100vw 100vh;
 }
 
 #root {
   margin: 0 auto;
-}
-
-.card {
-  padding: 2em;
 }
 
 

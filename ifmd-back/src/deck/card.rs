@@ -13,6 +13,8 @@ pub struct Card {
     pub url: String,
     /// Set the card belongs to
     pub set_id: Option<String>,
+    /// Amount of the card
+    pub card_amount: i32
 }
 
 /// Represents a card in the system
@@ -31,6 +33,7 @@ impl Card {
             id,
             url: card_img_path,
             set_id,
+            card_amount: 1
         }
     }
 

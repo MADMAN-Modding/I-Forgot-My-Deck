@@ -62,7 +62,7 @@ function Home() {
                         </span>
                     ) : (
                         <>
-                            <a href="account/auth/">Login </a>
+                            <a href="account/auth/">Login</a>
                             &nbsp;&amp;&nbsp;
                             <a href="account/create">Signup</a>
                         </>
