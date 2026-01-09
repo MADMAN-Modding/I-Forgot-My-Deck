@@ -5,13 +5,13 @@ use crate::deck::card::Card;
 #[tsync::tsync]
 pub struct Deck {
     /// List of cards in the deck
-    pub cards: Vec<Card>,
+    pub cards: Vec<Card>
 }
 
 impl Deck {
     pub fn new() -> Self {
         Self {
-            cards: Vec::new(),
+            cards: Vec::new()
         }
     }
 

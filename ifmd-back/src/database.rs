@@ -1,9 +1,9 @@
-use std::{collections::HashSet, env};
+use std::{collections::HashSet, env, str::FromStr};
 
 use chrono::{Timelike, Utc};
+use serde_json::Value;
 use sqlx::{
-    FromRow, Pool, Row, Sqlite,
-    sqlite::{SqliteConnectOptions, SqlitePoolOptions},
+    Encode, FromRow, Pool, Row, Sqlite, sqlite::{SqliteConnectOptions, SqlitePoolOptions, SqliteQueryResult}
 };
 
 use crate::{
@@ -16,6 +16,10 @@ use crate::{
 pub trait Deletable {
     /// Returns the column name and value used to identify the row
     fn delete_key(&self) -> (&str, &str);
+}
+
+pub trait Insertable {
+    fn insert_type(self) -> Vec<Value>;
 }
 
 /// Connects to the sqlite database and runs migrations
@@ -229,6 +233,24 @@ pub async fn get_account(database: &Pool<Sqlite>, id: &String) -> Result<Account
     row
 }
 
+pub async fn get_account_from_token(
+    database: &Pool<Sqlite>,
+    token: String,
+) -> Result<String, anyhow::Error> {
+    let row = sqlx::query_as::<_, Token>(
+        r#"
+        SELECT * FROM tokens
+        WHERE token = ?1
+        LIMIT 1
+        "#,
+    )
+    .bind(token)
+    .fetch_one(database)
+    .await?;
+
+    Ok(row.id)
+}
+
 /// Verify an account
 pub async fn verify_account(
     database: &Pool<Sqlite>,
@@ -370,4 +392,40 @@ where
     let result = sqlx::query(&query).bind(val).execute(database).await?;
 
     Ok(result.rows_affected())
+}
+
+pub async fn insert_type<T>(
+    database: &Pool<Sqlite>,
+    table: &str,
+    row: T,
+) -> Result<(), anyhow::Error>
+where
+    T: Insertable,
+{
+    if table.contains(" ") {
+        panic!("No spaces allowed in table name!")
+    }
+
+    let values = row.insert_type();
+
+    // Create placeholders for the values
+    let placeholders = (1..=values.len())
+        .map(|i| format!("?{}", i))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    let query_str = format!("INSERT INTO {} VALUES ({})", table, placeholders);
+
+    let mut query = sqlx::query(&query_str);
+    for value in values {
+        query = query.bind(value);
+    }
+
+    let res = query.execute(database).await;
+
+    println!("{res:?}");
+
+    res?;
+
+    Ok(())
 }

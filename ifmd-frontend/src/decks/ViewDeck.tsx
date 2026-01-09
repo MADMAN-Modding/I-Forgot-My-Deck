@@ -26,7 +26,7 @@ function ViewDeck( {deck }: ViewDeckProps) {
                                 <b>{deck?.cards[0].display_name ?? deck?.cards[0].name}</b>
                             </h4>
                             <img
-                                className="w-50 rounded-xl"
+                                className="w-75 rounded-2xl"
                                 src={location + deck?.cards[0].url}
                                 alt={"Image of: " + (deck?.cards[0].display_name ?? deck?.cards[0].name)}
                             />

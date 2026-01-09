@@ -52,7 +52,7 @@ function Home() {
                 >
                     GitHub
                 </a>
-                <a href="#about">About</a>
+                <a href="/deck/create">Create Deck</a>
 
                 {/* Auth area */}
                 <div>

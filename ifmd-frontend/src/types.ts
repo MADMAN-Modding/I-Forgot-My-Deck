@@ -43,3 +43,14 @@ export interface Deck {
   /** List of cards in the deck */
   cards: Array<Card>;
 }
+
+export interface UserDeck {
+  /** ID of the deck */
+  deck_id: string;
+  /** ID of the deck's owner */
+  owner: string;
+  /** Name of the deck */
+  name: string;
+  /** Cards in the deck {id: \"\", count: 0} */
+  cards: string;
+}

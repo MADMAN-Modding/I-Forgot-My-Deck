@@ -13,6 +13,7 @@ pub mod account {
 pub mod routes {
     pub mod accounts;
     pub mod cards;
+    pub mod decks;
     pub mod ws;
 }
 
@@ -20,6 +21,7 @@ pub mod deck {
     pub mod cache;
     pub mod card;
     pub mod parse_deck;
+    pub mod user_deck;
 }
 
 pub mod queue;

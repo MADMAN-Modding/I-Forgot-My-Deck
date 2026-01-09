@@ -9,24 +9,6 @@ use serde_json::{json, Value};
 
 use crate::{constants::get_email_config_path, account::email::EmailConfig};
 
-/// Reads the config json and returns the value of the requested key
-///
-/// # Arguments
-/// * `key: &str` - The key to be read from the json file
-///
-/// # Returns
-/// * `String` - The data at the desired key
-// pub fn read_client_config_string(key: &str) -> String {
-//     read_json(key, &constants::get_client_config_path())
-// }
-
-// /// Reads the server config as a `Value` instance
-// /// 
-// /// # Returns
-// /// `Value` - The server's config
-// pub fn read_server_config_value() -> Value {
-//     read_json_as_value(&constants::get_server_config_path())
-// }
 
 /// Reads the json at the supplied path and returns the value of the requested key
 ///
