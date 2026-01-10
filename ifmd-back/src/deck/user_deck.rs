@@ -1,4 +1,4 @@
-use serde_json::Value;
+use sqlx::{Pool, QueryBuilder, Sqlite};
 
 use crate::database::Insertable;
 
@@ -27,14 +27,25 @@ impl UserDeck {
 }
 
 impl Insertable for UserDeck {
-    fn insert_type(self) -> Vec<Value> {
-        let mut values: Vec<Value> = Vec::new();
-        
-        values.push(Value::String(self.deck_id));
-        values.push(Value::String(self.owner));
-        values.push(Value::String(self.name));
-        values.push(Value::String(self.cards));
+    async fn insert(self, database: &Pool<Sqlite>) -> Result<(), anyhow::Error> {
+        let mut query_builder: QueryBuilder<Sqlite> = QueryBuilder::new(
+            // Note the trailing space; most calls to `QueryBuilder` don't automatically insert
+            // spaces as that might interfere with identifiers or quoted strings where exact
+            // values may matter.
+            "INSERT INTO decks(id, owner, name, cards) VALUES(",
+        );
 
-        values
+        query_builder.push_bind(self.deck_id);
+        query_builder.push("1, ");
+        query_builder.push_bind(self.owner);
+        query_builder.push("2, ");
+        query_builder.push_bind(self.name);
+        query_builder.push("3, ");
+        query_builder.push_bind(self.cards);
+        query_builder.push("4)");
+
+        query_builder.build().execute(database).await?;
+
+        Ok(())
     }
 }

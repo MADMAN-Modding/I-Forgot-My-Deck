@@ -21,7 +21,7 @@ pub async fn add_deck   (
 
     let user_deck = UserDeck::new(deck, deck_id, owner, name);
 
-    match database::insert_type(&state.database, "decks", user_deck).await {
+    match database::insert_type(&state.database, user_deck).await {
         Ok(_) => Ok((StatusCode::OK, "Deck Created".to_string())),
         Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Error inserting deck".to_string()))
     }

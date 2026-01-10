@@ -1,9 +1,8 @@
-use std::{collections::HashSet, env, str::FromStr};
+use std::{collections::HashSet, env};
 
 use chrono::{Timelike, Utc};
-use serde_json::Value;
 use sqlx::{
-    Encode, FromRow, Pool, Row, Sqlite, sqlite::{SqliteConnectOptions, SqlitePoolOptions, SqliteQueryResult}
+FromRow, Pool, Row, Sqlite, sqlite::{SqliteConnectOptions, SqlitePoolOptions}
 };
 
 use crate::{
@@ -19,7 +18,7 @@ pub trait Deletable {
 }
 
 pub trait Insertable {
-    fn insert_type(self) -> Vec<Value>;
+    fn insert(self, database: &Pool<Sqlite>) -> impl std::future::Future<Output = Result<(), anyhow::Error>> + Send;
 }
 
 /// Connects to the sqlite database and runs migrations
@@ -396,36 +395,10 @@ where
 
 pub async fn insert_type<T>(
     database: &Pool<Sqlite>,
-    table: &str,
     row: T,
 ) -> Result<(), anyhow::Error>
 where
     T: Insertable,
 {
-    if table.contains(" ") {
-        panic!("No spaces allowed in table name!")
-    }
-
-    let values = row.insert_type();
-
-    // Create placeholders for the values
-    let placeholders = (1..=values.len())
-        .map(|i| format!("?{}", i))
-        .collect::<Vec<_>>()
-        .join(", ");
-
-    let query_str = format!("INSERT INTO {} VALUES ({})", table, placeholders);
-
-    let mut query = sqlx::query(&query_str);
-    for value in values {
-        query = query.bind(value);
-    }
-
-    let res = query.execute(database).await;
-
-    println!("{res:?}");
-
-    res?;
-
-    Ok(())
+    row.insert(database).await
 }

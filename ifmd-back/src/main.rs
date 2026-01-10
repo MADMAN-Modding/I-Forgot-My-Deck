@@ -1,6 +1,6 @@
 use axum::{Router, routing::get};
 use ifmd_back::{constants, database, routes::{
-        accounts::{auth_account, make_account, token_auth, verify_account}, cards::get_card_by_exact_name, decks::{self, add_deck}
+        accounts::{auth_account, make_account, token_auth, verify_account}, cards::get_card_by_exact_name, decks::{add_deck}
     }, state
 };
 use std::{net::SocketAddr, sync::Arc};
