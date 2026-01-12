@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 
-use crate::database::Deletable;
+use crate::database::{Deletable, Insertable};
 
 #[derive(sqlx::FromRow, Clone, Debug, sqlx::Decode, sqlx::Encode)]
 pub struct Code {
@@ -10,7 +10,7 @@ pub struct Code {
     pub action: String,
     /// Data to use for the action
     pub data: String,
-    /// Time teh code was created
+    /// Time the code was created
     pub time: String
 }
 
@@ -71,6 +71,26 @@ impl Code {
 impl Deletable for Code {
     fn delete_key(&self) -> (&str, &str) {
         ("code", &self.code)
+    }
+}
+
+impl Insertable for Code {
+    async fn insert(self, database: &sqlx::Pool<sqlx::Sqlite>) -> Result<(), anyhow::Error> {
+        let mut query_builder: sqlx::QueryBuilder<sqlx::Sqlite> = sqlx::QueryBuilder::new(
+
+        "INSERT INTO codes (code, action, data) VALUES(",
+        );
+
+        query_builder.push_bind(self.code);
+        query_builder.push("1, ");
+        query_builder.push_bind(self.action);
+        query_builder.push("2, ");
+        query_builder.push_bind(self.data);
+        query_builder.push("3)");
+
+        query_builder.build().execute(database).await?;
+
+        Ok(())
     }
 }
 

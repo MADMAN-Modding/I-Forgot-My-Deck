@@ -282,22 +282,6 @@ pub async fn verify_account(
 
 // Begin Code Section
 
-pub async fn add_code(database: &Pool<Sqlite>, code: Code) -> Result<(), sqlx::Error> {
-    sqlx::query(
-        r#"
-        INSERT INTO codes (code, action, data)
-        VALUES (?1, ?2, ?3)
-        "#,
-    )
-    .bind(&code.code)
-    .bind(&code.action.to_string())
-    .bind(&code.data)
-    .execute(&*database)
-    .await?;
-
-    Ok(())
-}
-
 /// Get code action and data from a code
 pub async fn get_code(database: &Pool<Sqlite>, code: &String) -> Result<Code, sqlx::Error> {
     sqlx::query_as::<_, Code>(
@@ -310,22 +294,6 @@ pub async fn get_code(database: &Pool<Sqlite>, code: &String) -> Result<Code, sq
     .bind(code)
     .fetch_one(database)
     .await
-}
-
-// Begin Tokens
-pub async fn add_token(database: &Pool<Sqlite>, token: Token) -> Result<(), sqlx::Error> {
-    sqlx::query(
-        r#"
-        INSERT INTO tokens (id, token)
-        VALUES (?1, ?2)
-        "#,
-    )
-    .bind(&token.id)
-    .bind(&token.token)
-    .execute(&*database)
-    .await?;
-
-    Ok(())
 }
 
 /// Get code action and data from a code
@@ -393,12 +361,12 @@ where
     Ok(result.rows_affected())
 }
 
-pub async fn insert_type<T>(
+pub async fn insert_struct<T>(
     database: &Pool<Sqlite>,
-    row: T,
+    structure: T,
 ) -> Result<(), anyhow::Error>
 where
     T: Insertable,
 {
-    row.insert(database).await
+    structure.insert(database).await
 }

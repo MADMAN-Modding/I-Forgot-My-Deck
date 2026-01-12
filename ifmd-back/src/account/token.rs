@@ -1,6 +1,6 @@
 use chrono::NaiveDateTime;
 
-use crate::database::Deletable;
+use crate::database::{Deletable, Insertable};
 
 #[tsync::tsync]
 #[derive(sqlx::FromRow, Clone, Debug, sqlx::Decode, sqlx::Encode)]
@@ -31,5 +31,25 @@ impl Token {
 impl Deletable for Token {
     fn delete_key(&self) -> (&str, &str) {
         ("token", &self.token)
+    }
+}
+
+impl Insertable for Token {
+    async fn insert(self, database: &sqlx::Pool<sqlx::Sqlite>) -> Result<(), anyhow::Error> {
+        let mut query_builder: sqlx::QueryBuilder<sqlx::Sqlite> = sqlx::QueryBuilder::new(
+
+        "INSERT INTO tokens(id, token, time) VALUES(",
+        );
+
+        query_builder.push_bind(self.id);
+        query_builder.push("1, ");
+        query_builder.push_bind(self.token);
+        query_builder.push("2, ");
+        query_builder.push_bind(self.time);
+        query_builder.push("3)");
+
+        query_builder.build().execute(database).await?;
+
+        Ok(())
     }
 }

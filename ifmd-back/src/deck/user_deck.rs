@@ -1,5 +1,3 @@
-use sqlx::{Pool, QueryBuilder, Sqlite};
-
 use crate::database::Insertable;
 
 #[tsync::tsync]
@@ -27,11 +25,8 @@ impl UserDeck {
 }
 
 impl Insertable for UserDeck {
-    async fn insert(self, database: &Pool<Sqlite>) -> Result<(), anyhow::Error> {
-        let mut query_builder: QueryBuilder<Sqlite> = QueryBuilder::new(
-            // Note the trailing space; most calls to `QueryBuilder` don't automatically insert
-            // spaces as that might interfere with identifiers or quoted strings where exact
-            // values may matter.
+    async fn insert(self, database: &sqlx::Pool<sqlx::Sqlite>) -> Result<(), anyhow::Error> {
+        let mut query_builder: sqlx::QueryBuilder<sqlx::Sqlite> = sqlx::QueryBuilder::new(
             "INSERT INTO decks(id, owner, name, cards) VALUES(",
         );
 
