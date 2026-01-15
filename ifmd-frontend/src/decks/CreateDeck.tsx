@@ -1,5 +1,5 @@
 
-import React, { useState, type MouseEventHandler } from "react";
+import React, { useState } from "react";
 import type { Card, Deck } from "../types";
 import { processDeck } from "./buildDeck";
 import ViewDeck from "./ViewDeck";
@@ -46,8 +46,8 @@ function CardGetForm({ deck, setDeck, handleSubmit, show }: CardGetFormProps) {
 }
 
 interface UploadDeckData {
-  deck: String,
-  name: String
+  deck: string,
+  name: string
 }
 
 async function uploadDeck({ deck, name }: UploadDeckData) {
@@ -65,22 +65,19 @@ async function uploadDeck({ deck, name }: UploadDeckData) {
 
   try {
     const response = await fetch(
-      `http://127.0.0.1:3000/api/account/token/${token}`
+      `http://127.0.0.1:3000/api/decks/add/${encodeURIComponent(deck)}/${encodeURIComponent(name)}/${encodeURIComponent(token)}`
     );
 
-    const data = await response.json();
+    const data = await response.text();
 
 
     if (response.ok) {
       console.log("WAHOO")
-    } else {
-      // Invalid token
-      Cookies.remove("token");
+
+      console.log(data)
     }
-    console.log(data)
   } catch (err) {
     console.error(err);
-    Cookies.remove("token");
   }
 
 
@@ -91,6 +88,7 @@ function CreateDeck() {
   const [deckList, setDeckList] = useState("");
   const [error, setError] = useState("");
   const [buildingDone, setBuildingDone] = useState<boolean | null>(null);
+  const [uploadDeckState, setUploadDeckState] = useState("Upload")
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     setDeck(null)
@@ -130,12 +128,20 @@ function CreateDeck() {
     setBuildingDone(true);
   }
 
-  async function handleDeckSubmit(e: any) {
-    let deckData = "{";
+  async function handleDeckSubmit(_: any) {
+    let deckData = "";
 
-    for (const card in deck?.cards) {
-      console.log(card.length)  
+    if (deck != null) {
+      for (const card in deck.cards) {
+        var cardStruct = deck.cards[card];
+
+        deckData += cardStruct.id + ":" + cardStruct.card_amount + "\n";
+      }
     }
+
+    console.log(deckData)
+
+    uploadDeck({ deck: deckData, name: "My New Deck!" })
   }
 
   return (
@@ -161,11 +167,11 @@ function CreateDeck() {
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 
+      {buildingDone ?
+        <p onClick={handleDeckSubmit} className="text-2xl ml-auto mr-auto text-white text-center hover:cursor-pointer">{uploadDeckState} Deck</p>
+        : <p></p>
+      }
       <ViewDeck deck={deck} />
-
-
-      <button type="submit" onClick={handleDeckSubmit}>Press me!</button>
-
     </>
   );
 }
