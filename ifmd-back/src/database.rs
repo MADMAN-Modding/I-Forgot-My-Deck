@@ -2,7 +2,7 @@ use std::{collections::HashSet, env};
 
 use chrono::{Timelike, Utc};
 use sqlx::{
-FromRow, Pool, Row, Sqlite, sqlite::{SqliteConnectOptions, SqlitePoolOptions}
+    FromRow, Pool, Row, Sqlite, sqlite::{SqliteConnectOptions, SqlitePoolOptions, SqliteRow}
 };
 
 use crate::{
@@ -18,7 +18,10 @@ pub trait Deletable {
 }
 
 pub trait Insertable {
-    fn insert(self, database: &Pool<Sqlite>) -> impl std::future::Future<Output = Result<(), anyhow::Error>> + Send;
+    fn insert(
+        self,
+        database: &Pool<Sqlite>,
+    ) -> impl std::future::Future<Output = Result<(), anyhow::Error>> + Send;
 }
 
 /// Connects to the sqlite database and runs migrations
@@ -361,12 +364,15 @@ where
     Ok(result.rows_affected())
 }
 
-pub async fn insert_struct<T>(
-    database: &Pool<Sqlite>,
-    structure: T,
-) -> Result<(), anyhow::Error>
+pub async fn insert_struct<T>(database: &Pool<Sqlite>, structure: T) -> Result<(), anyhow::Error>
 where
     T: Insertable,
 {
     structure.insert(database).await
+}
+
+pub async fn search_table(database: &Pool<Sqlite>, table: &str, id: &str, column_id: &str) -> Result<Vec<SqliteRow>, sqlx::Error> {
+    let query = format!("SELECT * FROM {} WHERE {} = ?1", table, column_id);
+
+    sqlx::query(&query).bind(id).fetch_all(database).await
 }

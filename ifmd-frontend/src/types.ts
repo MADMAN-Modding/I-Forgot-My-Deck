@@ -46,7 +46,7 @@ export interface Deck {
 
 export interface UserDeck {
   /** ID of the deck */
-  deck_id: string;
+  id: string;
   /** ID of the deck's owner */
   owner: string;
   /** Name of the deck */

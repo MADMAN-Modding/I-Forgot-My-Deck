@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import type { Card, Deck } from "../types";
 import { processDeck } from "./buildDeck";
-import ViewDeck from "./ViewDeck";
+import { ViewDeck }  from "./ViewDeck";
 import Cookies from "js-cookie";
 
 interface CardGetFormProps {
@@ -50,45 +50,37 @@ interface UploadDeckData {
   name: string
 }
 
-async function uploadDeck({ deck, name }: UploadDeckData) {
-  const token = Cookies.get("token");
-
-  console.log(deck);
-  console.log(name);
-  console.log(token);
-
-  // No cookies skip auth
-  if (!token) {
-    console.log("NO TOKEN!!!!")
-    return;
-  }
-
-  try {
-    const response = await fetch(
-      `http://127.0.0.1:3000/api/decks/add/${encodeURIComponent(deck)}/${encodeURIComponent(name)}/${encodeURIComponent(token)}`
-    );
-
-    const data = await response.text();
-
-
-    if (response.ok) {
-      console.log("WAHOO")
-
-      console.log(data)
-    }
-  } catch (err) {
-    console.error(err);
-  }
-
-
-}
-
 function CreateDeck() {
   const [deck, setDeck] = useState<Deck | null>(null);
   const [deckList, setDeckList] = useState("");
   const [error, setError] = useState("");
   const [buildingDone, setBuildingDone] = useState<boolean | null>(null);
   const [uploadDeckState, setUploadDeckState] = useState("Upload")
+  const [deckName, setDeckName] = useState('');
+
+  async function uploadDeck({ deck, name }: UploadDeckData) {
+    const token = Cookies.get("token");
+
+    // No cookie cancel upload
+    if (!token) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:3000/api/decks/add/${encodeURIComponent(deck)}/${encodeURIComponent(name)}/${encodeURIComponent(token)}`
+      );
+
+      if (response.ok) {
+        setUploadDeckState("Uploaded")
+      }
+    } catch (err) {
+      setUploadDeckState("Could not Upload")
+      console.error(err);
+    }
+
+
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     setDeck(null)
@@ -129,6 +121,7 @@ function CreateDeck() {
   }
 
   async function handleDeckSubmit(_: any) {
+    setUploadDeckState("Uploading")
     let deckData = "";
 
     if (deck != null) {
@@ -139,9 +132,7 @@ function CreateDeck() {
       }
     }
 
-    console.log(deckData)
-
-    uploadDeck({ deck: deckData, name: "My New Deck!" })
+    uploadDeck({ deck: deckData, name: deckName })
   }
 
   return (
@@ -167,10 +158,24 @@ function CreateDeck() {
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 
-      {buildingDone ?
-        <p onClick={handleDeckSubmit} className="text-2xl ml-auto mr-auto text-white text-center hover:cursor-pointer">{uploadDeckState} Deck</p>
-        : <p></p>
-      }
+      {buildingDone ? (
+        <form className="m-auto *:text-white text-center" onSubmit={handleDeckSubmit}>
+          <label htmlFor="deckName">Deck Name: </label>
+          <input
+            type="text"
+            id="deckName"
+            className="bg-(--main-color) rounded-xl pl-1 pr-1"
+            value={deckName}
+            onChange={(e) => setDeckName(e.target.value)}
+            required
+          />
+
+          <p onClick={handleDeckSubmit} className="text-2xl ml-auto mr-auto text-white text-center hover:cursor-pointer w-fit bg-(--main-color) p-1 mt-3 rounded-2xl">
+            {uploadDeckState} Deck
+          </p>
+        </form>
+      ) : <p></p>}
+
       <ViewDeck deck={deck} />
     </>
   );

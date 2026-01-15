@@ -17,8 +17,6 @@ function Verify() {
             try {
                 firstRun = true;
 
-                console.log("Searching for: " + code)
-
                 const response = await fetch(
                     `http://127.0.0.1:3000/api/account/verify/${encodeURIComponent(code)}`
                 )

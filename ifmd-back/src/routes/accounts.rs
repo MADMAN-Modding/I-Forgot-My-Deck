@@ -7,6 +7,7 @@ use axum::{
 use chrono::Utc;
 use reqwest::StatusCode;
 use serde_json::{Value, json};
+use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
 use crate::{
@@ -191,4 +192,18 @@ pub async fn token_auth(
             Json(json!({"msg":"invalid_token"})),
         )),
     }
+}
+
+pub async fn get_owner_from_token(database: &Pool<Sqlite>, token: String) -> Result<String, (StatusCode, String)> {
+        let owner = match database::get_account_from_token(database, token).await {
+        Ok(v) => v,
+        Err(_) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                "Token does not match an account, try logging out and then back in".to_string(),
+            ));
+        }
+    };
+
+    Ok(owner)
 }

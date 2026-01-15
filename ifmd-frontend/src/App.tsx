@@ -9,6 +9,7 @@ import Verify from "./account/VerifyAccount.tsx";
 import Create from "./account/CreateAccount.tsx";
 import Auth from "./account/AuthAccount.tsx";
 import CreateDeck from "./decks/CreateDeck.tsx";
+import { ViewUserDecks, ViewDeckFromID } from "./decks/ViewDeck.tsx";
 
 function App() {
     return (
@@ -17,27 +18,35 @@ function App() {
                 <Routes>
                     <Route
                         path="/"
-                        element={<Home />}
+                        element={<Home/>}
                     />
                     <Route
                         path="/verify/:code"
-                        element={<Verify />}
+                        element={<Verify/>}
                     />
                     <Route
                         path="/account/create"
-                        element={<Create />}
+                        element={<Create/>}
                     />
                     <Route
                         path="/account/auth"
-                        element={<Auth />}
+                        element={<Auth/>}
                     />
                     <Route
                         path="/deck/create"
                         element={<CreateDeck/>}
                     />
                     <Route
+                        path="/deck/view/user"
+                        element={<ViewUserDecks/>}
+                    />
+                    <Route
+                        path="/deck/view/:id"
+                        element={<ViewDeckFromID/>}
+                    />
+                    <Route
                         path="*"
-                        element={<Navigate to="/" />}
+                        element={<Navigate to="/"/>}
                     />
                 </Routes>
             </Router>

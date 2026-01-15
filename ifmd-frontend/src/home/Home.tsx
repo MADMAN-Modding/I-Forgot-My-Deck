@@ -54,6 +54,8 @@ function Home() {
                 </a>
                 <a href="/deck/create">Create Deck</a>
 
+                <a href="/deck/view/user">View Decks</a>
+
                 {/* Auth area */}
                 <div>
                     {checkedAuth && displayName ? (
@@ -75,7 +77,7 @@ function Home() {
 
                 <h2 className="text-xl">
                     That's ok! Add your deck{" "}
-                    <a className="underline" href="">
+                    <a className="underline" href="deck/create">
                         here
                     </a>
                     !

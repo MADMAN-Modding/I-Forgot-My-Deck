@@ -1,7 +1,10 @@
+import { useEffect, useState } from "react";
 import type { Deck } from "../types";
+import Cookies from "js-cookie";
+import { useParams } from "react-router-dom";
 
 interface ViewDeckProps {
-  deck: Deck | null;
+    deck: Deck | null;
 }
 
 let location = window.location.href;
@@ -10,7 +13,7 @@ let deckPos = location.indexOf("deck");
 
 location = location.substring(0, deckPos);
 
-function ViewDeck( {deck }: ViewDeckProps) {
+export function ViewDeck({ deck }: ViewDeckProps) {
     if (!deck) {
         return <p className="text-white text-center mt-5 bg-[#333333] w-fit m-auto p-2 rounded-2xl">No deck loaded yet</p>;
     }
@@ -40,12 +43,6 @@ function ViewDeck( {deck }: ViewDeckProps) {
                                     <h4>
                                         <b>{card.card_amount} {card.display_name ?? card.name}</b>
                                     </h4>
-                                    {/* <img
-                      src={location + card.url}
-                      alt={"Image of: " + (card.display_name ?? card.name)}
-                    /> */}
-                                    {/* <p>Set: {card.set_id ?? "Unknown"} </p>
-                    <p>ID: {card.id ?? "Unknown"}</p> */}
                                 </div>
                             </div>
                         ))}
@@ -55,4 +52,88 @@ function ViewDeck( {deck }: ViewDeckProps) {
         </div>)
 }
 
-export default ViewDeck;
+export function ViewUserDecks() {
+    // State for storing the user decks
+    const [deckIDs, setDeckIDs] = useState<[string] | null>(null);
+
+    async function getDecks() {
+        try {
+            const token = Cookies.get("token");
+
+            if (!token) {
+                return;
+            }
+
+            const response = await fetch(
+                `http://127.0.0.1:3000/api/decks/get/${encodeURIComponent(token)}`
+            );
+
+            let data = await response.json();
+
+            if (response.ok) {
+                console.log(data)
+                setDeckIDs(data)
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    // Call getDecks only once after the component has mounted
+    useEffect(() => {
+        getDecks();
+    }, []);
+
+    const decks = deckIDs?.map((deck) => <a href={`${deck[0]}`}><p className="text-white bg-black rounded-2xl pl-3 pr-3 mb-2 hover:cursor-pointer" key={deck[0]}>{deck[1]}</p></a>)
+
+    return (
+        <>
+            <h1 className="text-white text-center text-5xl mt-5">Your Decks</h1>
+
+            <div className="m-auto mt-70 bg-[#333333] w-fit p-3 align-middle rounded-2xl">
+                {
+                    decks
+                }
+            </div>
+        </>
+    )
+}
+
+export function ViewDeckFromID() {
+    const { id } = useParams<string>();
+    const [deck, setDeck] = useState<any | null>(null);
+
+    async function getDeckList() {
+        try {
+            const token = Cookies.get("token");
+
+            if (!token || id == null) {
+                return;
+            }
+
+            const response = await fetch(
+                `http://127.0.0.1:3000/api/deck_list/get/${encodeURIComponent(token)}/${encodeURIComponent(id)}`
+            );
+
+            let data = await response.json();
+
+            if (response.ok) {
+                setDeck(data)
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    useEffect(() => {
+        getDeckList();
+    }, [])
+
+
+    // for (const card in deck["cards"]) {
+    //     console.log(card)
+    // }
+
+    return (<>
+    <ViewDeck deck={deck}/></>)
+}
