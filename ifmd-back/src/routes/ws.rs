@@ -18,6 +18,8 @@ pub async fn ws_handler(
 }
 
 async fn handle_socket(stream: WebSocket, state: Arc<AppState>, lobby_id: String) {
+    println!("Client for lobby {} connected.", lobby_id);
+
     // Ensure a broadcast channel exists for the lobby
     let tx = {
         let mut lobbies = state.lobbies.lock().unwrap();
@@ -35,6 +37,8 @@ async fn handle_socket(stream: WebSocket, state: Arc<AppState>, lobby_id: String
     let lobby_clone = lobby_id.clone();
     tokio::spawn(async move {
         while let Some(Ok(msg)) = receiver.next().await {
+            println!("tx message: {}", msg.to_text().unwrap());
+
             if let Message::Text(text) = msg {
                 if tx_clone.send(text.to_string()).is_err() {
                     eprintln!("No active listeners in lobby {lobby_clone}");
@@ -45,6 +49,8 @@ async fn handle_socket(stream: WebSocket, state: Arc<AppState>, lobby_id: String
 
     // Task 2: receive broadcasts then send to client
     while let Ok(msg) = rx.recv().await {
+        println!("rx message: {}", msg);
+
         if sender.send(Message::Text(msg.into())).await.is_err() {
             break;
         }

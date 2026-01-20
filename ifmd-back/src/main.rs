@@ -1,6 +1,6 @@
 use axum::{Router, routing::get};
 use ifmd_back::{constants, database, routes::{
-        accounts::{auth_account, make_account, token_auth, verify_account}, cards::get_card_by_exact_name, decks::{add_deck, get_deck_list, get_user_decks}
+        accounts::{auth_account, make_account, token_auth, verify_account}, cards::get_card_by_exact_name, decks::{add_deck, get_deck_list, get_user_decks}, ws::{self, ws_handler}
     }, state
 };
 use std::{net::SocketAddr, sync::Arc};
@@ -34,6 +34,7 @@ async fn main() {
         .route("/api/decks/add/:deck/:name/:token", get(add_deck))
         .route("/api/decks/get/:token", get(get_user_decks))
         .route("/api/deck_list/get/:token/:id", get(get_deck_list))
+        .route("/ws/join/:lobby_id", get(ws_handler))
         .layer(CorsLayer::permissive())
         .with_state(app_state.clone());
 
