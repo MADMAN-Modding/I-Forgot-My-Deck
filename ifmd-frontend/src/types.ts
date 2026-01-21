@@ -54,3 +54,45 @@ export interface UserDeck {
   /** Cards in the deck {id: \"\", count: 0} */
   cards: string;
 }
+
+export interface Client<T> {
+  /** The type of client connected */
+  client_type: ClientType;
+  /** ID of the connected client */
+  id: string;
+  /** ID of the deck being used */
+  deck_id: string;
+  /** Data of the deck being used */
+  deck: UserDeck;
+  /** Data the client has */
+  client_data: T;
+}
+
+export type ClientType =``
+  | "MAT" | "TABLE";
+
+export interface PlayedCard {
+  /** The card itself */
+  card: Card;
+  /** Should the front of the card show */
+  show_front: boolean;
+  /** Is the card tapped */
+  tapped: boolean;
+  /** (x,y) coordinates of the card */
+  location: [number, number];
+  /** How many rotations to turn the card */
+  rotation: number;
+  /** Strength modifier to display */
+  strength_mod: number;
+  /** Defense modifier to display */
+  defense_mod: number;
+  /** Tokens on the card */
+  counters: Array<Counter>;
+}
+
+export interface Counter {
+  /** Amount of Counters on Card */
+  amount: number;
+  /** Name of te counter */
+  name: string;
+}

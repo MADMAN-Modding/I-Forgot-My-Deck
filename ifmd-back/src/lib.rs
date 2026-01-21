@@ -24,5 +24,9 @@ pub mod deck {
     pub mod user_deck;
 }
 
+pub mod lobby {
+    pub mod client;
+}
+
 pub mod queue;
 pub mod state;
