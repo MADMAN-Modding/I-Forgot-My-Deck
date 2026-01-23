@@ -10,7 +10,7 @@ import Create from "./account/CreateAccount.tsx";
 import Auth from "./account/AuthAccount.tsx";
 import CreateDeck from "./decks/CreateDeck.tsx";
 import { ViewUserDecks, ViewDeckFromID } from "./decks/ViewDeck.tsx";
-import { Table } from "./table/Table.tsx";
+import { Mat } from "./table/Mat.tsx";
 
 function App() {
     return (
@@ -46,8 +46,8 @@ function App() {
                         element={<ViewDeckFromID/>}
                     />
                     <Route
-                        path="/table"
-                        element={<Table/>}
+                        path="/mat"
+                        element={<Mat/>}
                     />
                     <Route
                         path="*"

@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import type { Card, Deck } from "../types";
-import { processDeck } from "./buildDeck";
+import { processDeck } from "./BuildDeck";
 import { ViewDeck }  from "./ViewDeck";
 import Cookies from "js-cookie";
 

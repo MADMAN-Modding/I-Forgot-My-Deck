@@ -14,7 +14,7 @@ pub mod routes {
     pub mod accounts;
     pub mod cards;
     pub mod decks;
-    pub mod ws;
+    pub mod lobby;
 }
 
 pub mod deck {

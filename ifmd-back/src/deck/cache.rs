@@ -33,8 +33,9 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
     let file_path = build_path(card_id).await?;
     let card_display_name = res["name"].as_str();
     let card_img_download: &str; 
+    let is_two_faced: bool = card_name.contains("//");
 
-    if card_name.contains("//") {
+    if is_two_faced {
         // Handle double-faced card names
         let parts: Vec<&str> = card_name.split("//").collect();
         if parts.len() != 2 {
@@ -45,8 +46,6 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
     
         let card_name = format!("{} // {}", first_face, second_face);
         card_img_download = res["card_faces"][0]["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No front image for card: {card_name}"))?;
-
-        
 
         // Download Front Face
         download_image(card_img_download, &file_path, card_id).await?;
@@ -60,7 +59,7 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
         card_img_download = res["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No image for card: {card_name}"))?;
     }
 
-    let card = Card::new(card_name.to_string(), card_display_name.map(|s| s.to_string()), card_id.to_string(), file_path.clone(), Some(set.to_string()));
+    let card = Card::new(card_name.to_string(), card_display_name.map(|s| s.to_string()), card_id.to_string(), file_path.clone(), Some(set.to_string()), false, is_two_faced);
 
     download_image(&card_img_download, &file_path, card_id).await?;
 

@@ -4,44 +4,103 @@ use crate::deck::{card::Card, user_deck::UserDeck};
 
 #[tsync::tsync]
 pub struct Client<T>
-where T: ClientData {
+where
+    T: ClientData,
+{
     /// The type of client connected
     pub client_type: ClientType,
     /// ID of the connected client
     pub id: String,
-    /// ID of the deck being used
-    pub deck_id: String,
-    /// Data of the deck being used
-    pub deck: UserDeck,
     /// Data the client has
-    pub client_data: T
+    pub client_data: T,
+}
+
+impl<T> Client<T>
+where
+    T: ClientData,
+{
+    /// Return new Client struct from string representation of client type
+    pub fn from_str(
+        client_type: &str,
+    ) -> Client<T>
+    {
+        let client_type = ClientType::from_str(client_type);
+
+        Client {
+            client_type,
+            id: "".to_string(),
+            client_data: T::default(),
+        }
+    }
+
+    /// Return reference to client data
+    pub fn get_client_data(&self) -> &T {
+        &self.client_data
+    }
 }
 
 impl Client<PlayerData> {
     /// Return new Client struct
-    pub fn new(client_type: ClientType, id: &str, deck_id: &str, deck: UserDeck, client_data: PlayerData) -> Client<PlayerData> {
-        Client { client_type, id: id.to_string(), deck_id: deck_id.to_string(), deck, client_data }
+    pub fn new(
+        client_type: ClientType,
+        id: &str,
+        client_data: PlayerData,
+    ) -> Client<PlayerData> {
+        Client {
+            client_type,
+            id: id.to_string(),
+            client_data,
+        }
     }
 }
 
 impl Client<TableData> {
     /// Return new Client struct
-    pub fn new(client_type: ClientType, id: &str, deck_id: &str, deck: UserDeck, client_data: TableData) -> Client<TableData> {
-        Client { client_type, id: id.to_string(), deck_id: deck_id.to_string(), deck, client_data }
+    pub fn new(
+        client_type: ClientType,
+        id: &str,
+        client_data: TableData,
+    ) -> Client<TableData> {
+        Client {
+            client_type,
+            id: id.to_string(),
+            client_data,
+        }
     }
 }
 
-/// Trait for client data, implemented by PlayerData and TableData, no methods
-pub trait ClientData {}
+/// Trait for client data, implemented by PlayerData and TableData
+pub trait ClientData {
+    fn default() -> Self;
+}
 
 #[tsync::tsync]
 pub enum ClientType {
     /// Mat is the term used for players
     MAT,
     /// Table is the term used for the screen viewing the board
-    TABLE
+    TABLE,
 }
 
+impl ClientType {
+    /// Return ClientType from &str
+    pub fn from_str(client_type: &str) -> ClientType {
+        match client_type.to_uppercase().as_str() {
+            "MAT" => ClientType::MAT,
+            "TABLE" => ClientType::TABLE,
+            _ => panic!("Invalid client type"),
+        }
+    }
+
+    pub fn to_string(&self) -> String {
+        match self {
+            ClientType::MAT => "MAT",
+            ClientType::TABLE => "TABLE"
+        }.to_string()
+    }
+}
+
+#[tsync::tsync]
 pub struct PlayerData {
     /// Cards in the players hand
     pub hand: Hand,
@@ -50,18 +109,43 @@ pub struct PlayerData {
     /// Life remaining for the player
     pub life: i32,
     /// Vector of all the commander damage dealt to the player
-    pub commander_damage: Vec<i32>
+    pub commander_damage: Vec<i32>,
+    /// Data of the deck being used
+    pub deck: UserDeck,
 }
 
 impl PlayerData {
     /// Return new PlayerData struct
-    pub fn new(hand: Hand, played_cards: Vec<PlayedCard>, life: i32, commander_damage: Vec<i32>) -> PlayerData {
-        PlayerData { hand, played_cards, life, commander_damage }
+    pub fn new(
+        hand: Hand,
+        played_cards: Vec<PlayedCard>,
+        life: i32,
+        commander_damage: Vec<i32>,    
+        deck: UserDeck,
+    ) -> PlayerData {
+        PlayerData {
+            hand,
+            played_cards,
+            life,
+            commander_damage,
+            deck,
+        }
     }
 }
 
-impl ClientData for PlayerData {}
+impl ClientData for PlayerData {
+    fn default() -> Self {
+        PlayerData {
+            hand: Hand { cards: Vec::new() },
+            played_cards: Vec::new(),
+            life: 40,
+            commander_damage: Vec::new(),
+            deck: UserDeck::default()
+        }
+    }
+}
 
+#[tsync::tsync]
 pub struct Hand {
     /// Cards in the players hand
     pub cards: Vec<Card>,
@@ -88,16 +172,34 @@ pub struct PlayedCard {
     pub rotation: f32,
     /// Strength modifier to display
     pub strength_mod: i32,
-    /// Defense modifier to display
-    pub defense_mod: i32,
+    /// Toughness modifier to display
+    pub toughness_mod: i32,
     /// Tokens on the card
-    pub counters: Vec<Counter>
+    pub counters: Vec<Counter>,
 }
 
 impl PlayedCard {
     /// Return new PlayedCard struct
-    pub fn new(card: Card, show_front: bool, tapped: bool, location: (f32, f32), rotation: f32, strength_mod: i32, defense_mod: i32, counters: Vec<Counter>) -> PlayedCard {
-        PlayedCard { card, show_front, tapped, location, rotation, strength_mod, defense_mod, counters }
+    pub fn new(
+        card: Card,
+        show_front: bool,
+        tapped: bool,
+        location: (f32, f32),
+        rotation: f32,
+        strength_mod: i32,
+        toughness_mod: i32,
+        counters: Vec<Counter>,
+    ) -> PlayedCard {
+        PlayedCard {
+            card,
+            show_front,
+            tapped,
+            location,
+            rotation,
+            strength_mod,
+            toughness_mod,
+            counters,
+        }
     }
 }
 
@@ -106,19 +208,30 @@ pub struct Counter {
     /// Amount of Counters on Card
     pub amount: i32,
     /// Name of te counter
-    pub name: String
+    pub name: String,
 }
 
 impl Counter {
     pub fn new(amount: i32, name: &str) -> Counter {
-        Counter { amount, name: name.to_string() }
+        Counter {
+            amount,
+            name: name.to_string(),
+        }
     }
 }
 
 pub struct TableData {
     pub player_count: i32,
     pub life_max: i32,
-    pub client_data: HashMap<Client<PlayerData>, PlayerData>
+    pub client_data: HashMap<Client<PlayerData>, PlayerData>,
 }
 
-impl ClientData for TableData {}
+impl ClientData for TableData {
+    fn default() -> Self {
+        TableData {
+            player_count: 0,
+            life_max: 40,
+            client_data: HashMap::new(),
+        }
+    }
+}

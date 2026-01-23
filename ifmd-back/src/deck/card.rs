@@ -14,7 +14,11 @@ pub struct Card {
     /// Set the card belongs to
     pub set_id: Option<String>,
     /// Amount of the card
-    pub card_amount: i32
+    pub card_amount: i32,
+    /// Is the card the commander in the deck
+    pub is_commander: bool,
+    /// Is the card two-faced
+    pub is_two_faced: bool,
 }
 
 /// Represents a card in the system
@@ -26,14 +30,24 @@ impl Card {
     /// * `card_img_path: String` - Path to the card image on scryfall
     /// # Returns
     /// `Card` - New Card instance
-    pub fn new(name: String, display_name: Option<String>, id: String, card_img_path: String, set_id: Option<String>) -> Self {
+    pub fn new(
+        name: String,
+        display_name: Option<String>,
+        id: String,
+        card_img_path: String,
+        set_id: Option<String>,
+        is_commander: bool,
+        is_two_faced: bool
+    ) -> Self {
         Self {
             name,
             display_name,
             id,
             url: card_img_path,
             set_id,
-            card_amount: 1
+            card_amount: 1,
+            is_commander,
+            is_two_faced,
         }
     }
 
@@ -45,6 +59,13 @@ impl Card {
 /// Implement Display trait for Card
 impl fmt::Display for Card {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Card(Name: {:?}, Set: {:?}, ID: {}, Image Path: {})", self.display_name, self.set_id.as_deref().unwrap_or("N/A"), self.id, self.url)
+        write!(
+            f,
+            "Card(Name: {:?}, Set: {:?}, ID: {}, Image Path: {})",
+            self.display_name,
+            self.set_id.as_deref().unwrap_or("N/A"),
+            self.id,
+            self.url
+        )
     }
 }

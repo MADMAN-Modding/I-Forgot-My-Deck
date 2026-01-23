@@ -43,29 +43,3 @@ impl fmt::Display for Deck {
         write!(f, "Deck with {} cards", self.cards.len())
     }
 }
-
-pub fn read_deck_file(path: &str) -> Result<Deck, anyhow::Error>{
-    let cards = std::fs::read_to_string(path)?;
-    
-    let mut cards_vec: Vec<String> = Vec::new();
-
-    // Filter out numbers and space before card names
-    for line in cards.lines() {
-        let card = line.trim_start().splitn(2, ' ').nth(1).unwrap_or(line);
-        
-        let card_name = card.split(')').next().unwrap_or(&card).trim().to_owned() + ")";
-
-        cards_vec.push(card_name);
-    }
-
-    let mut deck = Deck::new();
-
-    // Separate the card names and sets
-    for card in &cards_vec {
-        let card_name = card.split('(').next().unwrap_or(card).trim().to_string().replace("//", "/").replace("/", "//");
-        let card_set = card.split('(').nth(1).unwrap_or("").trim_end_matches(')').trim().to_string().to_lowercase();
-        deck.add_card(Card::new(card_name, None, String::new(), String::new(), Some(card_set)));
-    }
-
-    Ok(deck)
-}

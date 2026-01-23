@@ -6,19 +6,25 @@ use axum::extract::ws::{Message, WebSocket};
 use tokio::sync::broadcast;
 use futures::{StreamExt, SinkExt};
 use std::sync::Arc;
-use crate::state::AppState;
+use crate::{lobby::client::{Client, ClientData, PlayerData, TableData}, state::AppState};
 
-/// Handle WebSocket connections at /ws/:lobby_id
+/// Handle WebSocket connections
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
-    Path(lobby_id): Path<String>,
+    Path((lobby_id, client_type)): Path<(String, String)>,
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(socket, state, lobby_id))
+    ws.on_upgrade(move |socket| async move {
+        match client_type.to_uppercase().as_str() {
+            "MAT" => handle_socket(socket, state, lobby_id, Client::<PlayerData>::from_str(&client_type)).await,
+            "TABLE" => handle_socket(socket, state, lobby_id, Client::<TableData>::from_str(&client_type)).await,
+            _ => (),
+        }
+    })
 }
 
-async fn handle_socket(stream: WebSocket, state: Arc<AppState>, lobby_id: String) {
-    println!("Client for lobby {} connected.", lobby_id);
+async fn handle_socket<T>(stream: WebSocket, state: Arc<AppState>, lobby_id: String, client_struct: Client<T>) where T: ClientData {
+    println!("Client for lobby {} connected as {}.", lobby_id, client_struct.client_type.to_string());
 
     // Ensure a broadcast channel exists for the lobby
     let tx = {
@@ -31,6 +37,8 @@ async fn handle_socket(stream: WebSocket, state: Arc<AppState>, lobby_id: String
 
     let mut rx = tx.subscribe();
     let (mut sender, mut receiver) = stream.split();
+
+    sender.send(Message::Text(format!("{}", client_struct.client_type.to_string()))).await.unwrap();
 
     // Task 1: receive messages from client then broadcast to lobby
     let tx_clone = tx.clone();

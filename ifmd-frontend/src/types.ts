@@ -37,6 +37,10 @@ export interface Card {
   set_id?: string;
   /** Amount of the card */
   card_amount: number;
+  /** Is the card the commander in the deck */
+  is_commander: boolean;
+  /** Is the card two-faced */
+  is_two_faced: boolean;
 }
 
 export interface Deck {
@@ -60,16 +64,30 @@ export interface Client<T> {
   client_type: ClientType;
   /** ID of the connected client */
   id: string;
-  /** ID of the deck being used */
-  deck_id: string;
-  /** Data of the deck being used */
-  deck: UserDeck;
   /** Data the client has */
   client_data: T;
 }
 
-export type ClientType =``
+export type ClientType =
   | "MAT" | "TABLE";
+
+export interface PlayerData {
+  /** Cards in the players hand */
+  hand: Hand;
+  /** Cards on the players table */
+  played_cards: Array<PlayedCard>;
+  /** Life remaining for the player */
+  life: number;
+  /** Vector of all the commander damage dealt to the player */
+  commander_damage: Array<number>;
+  /** Data of the deck being used */
+  deck: UserDeck;
+}
+
+export interface Hand {
+  /** Cards in the players hand */
+  cards: Array<Card>;
+}
 
 export interface PlayedCard {
   /** The card itself */
@@ -84,8 +102,8 @@ export interface PlayedCard {
   rotation: number;
   /** Strength modifier to display */
   strength_mod: number;
-  /** Defense modifier to display */
-  defense_mod: number;
+  /** Toughness modifier to display */
+  toughness_mod: number;
   /** Tokens on the card */
   counters: Array<Counter>;
 }

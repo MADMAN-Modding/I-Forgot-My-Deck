@@ -71,7 +71,6 @@ export function ViewUserDecks() {
             let data = await response.json();
 
             if (response.ok) {
-                console.log(data)
                 setDeckIDs(data)
             }
         } catch (err) {
@@ -84,7 +83,7 @@ export function ViewUserDecks() {
         getDecks();
     }, []);
 
-    const decks = deckIDs?.map((deck) => <a href={`${deck[0]}`}><p className="text-white bg-black rounded-2xl pl-3 pr-3 mb-2 hover:cursor-pointer" key={deck[0]}>{deck[1]}</p></a>)
+    const decks = deckIDs?.map((deck) => <a href={`${deck[0]}`} key={`${deck[0]}`}><p className="text-white bg-black rounded-2xl pl-3 pr-3 mb-2 hover:cursor-pointer" key={deck[0]}>{deck[1]}</p></a>)
 
     return (
         <>
@@ -103,30 +102,14 @@ export function ViewDeckFromID() {
     const { id } = useParams<string>();
     const [deck, setDeck] = useState<any | null>(null);
 
-    async function getDeckList() {
-        try {
-            const token = Cookies.get("token");
-
-            if (!token || id == null) {
-                return;
-            }
-
-            const response = await fetch(
-                `http://127.0.0.1:3000/api/deck_list/get/${encodeURIComponent(token)}/${encodeURIComponent(id)}`
-            );
-
-            let data = await response.json();
-
-            if (response.ok) {
-                setDeck(data)
-            }
-        } catch (err) {
-            console.error(err);
-        }
-    }
+    if (id == null) return;
 
     useEffect(() => {
-        getDeckList();
+        getDeckList(id).then((deck) => setDeck(deck));
+
+        console.log(deck);
+
+        setDeck(deck)
     }, [])
 
 
@@ -135,5 +118,5 @@ export function ViewDeckFromID() {
     // }
 
     return (<>
-    <ViewDeck deck={deck}/></>)
+        <ViewDeck deck={deck} /></>)
 }

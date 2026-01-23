@@ -29,6 +29,15 @@ impl UserDeck {
         }
     }
 
+    pub fn default() -> UserDeck {
+        UserDeck {
+            id: "".to_string(),
+            owner: "".to_string(),
+            name: "".to_string(),
+            cards: "".to_string(),
+        }
+    }
+
     pub async fn to_json(&self, database: &Pool<Sqlite>) -> Value {
         let parsed_cards: HashMap<String, String> =
             serde_json::from_str(&self.cards).unwrap_or_default();
