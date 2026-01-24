@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Deck } from "../types";
 import Cookies from "js-cookie";
 import { useParams } from "react-router-dom";
+import { getDeckList } from "./BuildDeck";
 
 interface ViewDeckProps {
     deck: Deck | null;
