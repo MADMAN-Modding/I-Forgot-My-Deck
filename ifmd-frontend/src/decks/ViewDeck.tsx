@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Deck } from "../types";
 import Cookies from "js-cookie";
 import { useParams } from "react-router-dom";
-import { getDeckList } from "./BuildDeck";
+import { getDeckList, sortCommanderFirst } from "./BuildDeck";
 
 interface ViewDeckProps {
     deck: Deck | null;
@@ -19,8 +19,14 @@ export function ViewDeck({ deck }: ViewDeckProps) {
         return <p className="text-white text-center mt-5 bg-[#333333] w-fit m-auto p-2 rounded-2xl">No deck loaded yet</p>;
     }
 
+    console.log("PreOrdered: " + deck.cards.length);
+
+    deck = sortCommanderFirst(deck);
+
+    console.log("Ordered: " + deck.cards.length);
+
     return (
-        <div className="*:text-white bg-[#333333] rounded-4xl w-7/8 m-auto mt-5 grid grid-cols-3 *:text-sm">
+        <div className="*:text-white bg-[rgb(51,51,51)] rounded-4xl w-7/8 m-auto mt-5 grid grid-cols-3 *:text-sm">
             {deck && deck.cards.length > 0 && (
                 <>
                     {/* First card in its own row centered */}
@@ -106,17 +112,10 @@ export function ViewDeckFromID() {
     if (id == null) return;
 
     useEffect(() => {
-        getDeckList(id).then((deck) => setDeck(deck));
+        getDeckList(id).then((deck) => {console.log(deck); setDeck(deck)});
 
         console.log(deck);
-
-        setDeck(deck)
     }, [])
-
-
-    // for (const card in deck["cards"]) {
-    //     console.log(card)
-    // }
 
     return (<>
         <ViewDeck deck={deck} /></>)

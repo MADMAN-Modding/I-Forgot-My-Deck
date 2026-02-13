@@ -104,7 +104,9 @@ function CreateDeck() {
           id: data["id"],
           url: data["url"],
           set_id: data["set_id"],
-          card_amount: c.card_amount
+          card_amount: c.card_amount,
+          is_commander: c.is_commander,
+          is_two_faced: c.is_two_faced
         }
 
         setDeck(prevDeck => {
@@ -128,7 +130,7 @@ function CreateDeck() {
       for (const card in deck.cards) {
         var cardStruct = deck.cards[card];
 
-        deckData += cardStruct.id + ":" + cardStruct.card_amount + "\n";
+        deckData += `${cardStruct.id}:${cardStruct.card_amount}|${cardStruct.is_commander}\n`;
       }
     }
 

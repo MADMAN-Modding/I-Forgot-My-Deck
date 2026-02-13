@@ -25,14 +25,28 @@ pub async fn add_deck(
     for line in lines {
         let split_pos = line.find(":");
 
+        let command_split_pos = line.find("|");
+
         let split_pos = match split_pos {
             Some(v) => v,
             None => return Err((StatusCode::BAD_REQUEST, "Invalid deck data".to_string())),
         };
 
-        let (id, amount) = line.split_at(split_pos);
+        let command_split_pos = match command_split_pos {
+            Some(v) => v,
+            None => return Err((StatusCode::BAD_REQUEST, "Invalid deck data".to_string())),
+        };
 
-        json_deck[id] = Value::String(amount[1..].to_string());
+        let (id, amount_is_commander) = line.split_at(split_pos);
+
+        let (amount, is_commander) = amount_is_commander.split_at(command_split_pos - split_pos);
+
+        let amount = amount[1..].to_string();
+        let is_commander = is_commander[1..].to_string() == "true";
+
+        println!("{}|||{}|||{}", id, amount, is_commander);
+
+        json_deck[id] = json!({"amount": Value::String(amount),"isCommander": is_commander});
     }
 
     let deck_id = Uuid::new_v4().to_string();
@@ -81,12 +95,17 @@ pub async fn get_deck_list(
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, String)> {
     let owner = accounts::get_owner_from_token(&state.database, token).await?;
 
-    let row = &database::search_table(&state.database, "decks", &id, "id").await.unwrap()[0];
+    let row = &database::search_table(&state.database, "decks", &id, "id")
+        .await
+        .unwrap()[0];
 
     let deck: UserDeck = sqlx::FromRow::from_row(row).unwrap();
 
     if deck.owner != owner {
-        return Err((StatusCode::BAD_REQUEST, "you don't own this deck".to_string()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "you don't own this deck".to_string(),
+        ));
     }
 
     Ok((StatusCode::OK, Json(deck.to_json(&state.database).await)))
