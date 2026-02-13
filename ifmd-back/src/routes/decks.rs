@@ -22,9 +22,12 @@ pub async fn add_deck(
 
     let lines: Vec<&str> = deck.lines().collect();
 
+    // For every card
     for line in lines {
+        // Split between card id and the card data
         let split_pos = line.find(":");
 
+        // Split between card amount and if the card is the commander
         let command_split_pos = line.find("|");
 
         let split_pos = match split_pos {
@@ -37,16 +40,17 @@ pub async fn add_deck(
             None => return Err((StatusCode::BAD_REQUEST, "Invalid deck data".to_string())),
         };
 
+        // Split the card and data
         let (id, amount_is_commander) = line.split_at(split_pos);
 
+        // Split the amount and commander bool
         let (amount, is_commander) = amount_is_commander.split_at(command_split_pos - split_pos);
 
-        let amount = amount[1..].to_string();
+        let amount = amount.parse::<i32>().unwrap_or(1);
         let is_commander = is_commander[1..].to_string() == "true";
 
-        println!("{}|||{}|||{}", id, amount, is_commander);
-
-        json_deck[id] = json!({"amount": Value::String(amount),"isCommander": is_commander});
+        // Make the json for the card
+        json_deck[id] = json!({"amount": Value::Number(amount.into()),"isCommander": is_commander});
     }
 
     let deck_id = Uuid::new_v4().to_string();

@@ -39,8 +39,6 @@ impl UserDeck {
     }
 
     pub async fn to_json(&self, database: &Pool<Sqlite>) -> Value {
-        println!("Here");
-
         let parsed_cards: HashMap<String, Value> = match serde_json::from_str(&self.cards) {
             Ok(v) => v,
             Err(e) => {eprintln!("Parse {e:?}"); return Value::Null;}
@@ -50,8 +48,6 @@ impl UserDeck {
         let futures = parsed_cards
             .iter()
             .map(|(id, card_data)| async move {
-                println!("Test");
-
                 let mut card = database::get_card_by_id(database, id).await;
 
                 let count = card_data["amount"].as_i64().unwrap_or(1) as i32;
@@ -62,17 +58,11 @@ impl UserDeck {
                 
                 let json = json!(card);
 
-                println!("JSON CARD {}", json);
-
                 json
             })
             .collect::<Vec<_>>();
 
         let cards: Vec<Value> = join_all(futures).await;
-        
-        for card in cards.clone() {
-            println!("{}", card);
-        }
 
         json!({
             "id": self.id,
