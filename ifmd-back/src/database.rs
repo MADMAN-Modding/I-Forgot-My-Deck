@@ -351,7 +351,7 @@ pub async fn delete_row<T>(
 where
     T: Deletable,
 {
-    let allowed_tables = ["codes", "tokens"];
+    let allowed_tables = ["codes", "tokens", "decks"];
     if !allowed_tables.contains(&table) {
         panic!("Table not allowed: {}", table);
     }

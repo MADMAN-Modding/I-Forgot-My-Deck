@@ -68,7 +68,7 @@ function CreateDeck() {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:3000/api/decks/add/${encodeURIComponent(deck)}/${encodeURIComponent(name)}/${encodeURIComponent(token)}`
+        `https://127.0.0.1:3000/api/decks/add/${encodeURIComponent(deck)}/${encodeURIComponent(name)}/${encodeURIComponent(token)}`
       );
 
       if (response.ok) {
@@ -94,7 +94,7 @@ function CreateDeck() {
     setBuildingDone(false);
     for (const c of processedDeck.cards) {
       try {
-        const response = await fetch(`http://127.0.0.1:3000/api/card/name/${encodeURIComponent(c.name)}/${c.set_id}`);
+        const response = await fetch(`https://127.0.0.1:3000/api/card/name/${encodeURIComponent(c.name)}/${c.set_id}`);
 
         const data = await response.json();
 

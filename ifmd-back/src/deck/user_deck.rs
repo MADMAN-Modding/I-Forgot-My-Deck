@@ -4,7 +4,7 @@ use futures::future::join_all;
 use serde_json::{Value, json};
 use sqlx::{Pool, Sqlite};
 
-use crate::database::{self, Insertable};
+use crate::database::{self, Deletable, Insertable};
 
 #[tsync::tsync]
 #[derive(sqlx::FromRow, Clone, Debug, sqlx::Decode, sqlx::Encode)]
@@ -90,5 +90,11 @@ impl Insertable for UserDeck {
         query_builder.build().execute(database).await?;
 
         Ok(())
+    }
+}
+
+impl Deletable for UserDeck {
+    fn delete_key(&self) -> (&str, &str) {
+        ("id", &self.id)
     }
 }

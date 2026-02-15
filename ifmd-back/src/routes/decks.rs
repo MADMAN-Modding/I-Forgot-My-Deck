@@ -6,6 +6,7 @@ use axum::{
 };
 use reqwest::StatusCode;
 use serde_json::{Value, json};
+use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
 use crate::{database, deck::user_deck::UserDeck, routes::accounts, state::AppState};
@@ -97,13 +98,57 @@ pub async fn get_deck_list(
     Path((token, id)): Path<(String, String)>,
     State(state): State<Arc<AppState>>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, String)> {
-    let owner = accounts::get_owner_from_token(&state.database, token).await?;
+    let deck = match get_deck_from_db(token, id, &state.database).await {
+        Ok(v) => v,
+        Err(e) => return Err(e),
+    };
 
-    let row = &database::search_table(&state.database, "decks", &id, "id")
-        .await
-        .unwrap()[0];
+    Ok((StatusCode::OK, Json(deck.to_json(&state.database).await)))
+}
 
-    let deck: UserDeck = sqlx::FromRow::from_row(row).unwrap();
+pub async fn delete_deck(
+    Path((token, id)): Path<(String, String)>,
+    State(state): State<Arc<AppState>>,
+) -> Result<(StatusCode, Json<Value>), (StatusCode, String)> {
+    let deck = match get_deck_from_db(token, id, &state.database).await {
+        Ok(v) => v,
+        Err(e) => return Err(e),
+    };
+
+    match database::delete_row(&state.database, "decks", &deck).await {
+        Ok(_) => Ok((StatusCode::OK, Json(json!({"msg":"Deck Deleted"})))),
+        Err(_) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to Delete Deck".to_string(),
+        )),
+    }
+}
+
+async fn get_deck_from_db(
+    token: String,
+    id: String,
+    database: &Pool<Sqlite>,
+) -> Result<UserDeck, (StatusCode, String)> {
+    let owner = accounts::get_owner_from_token(database, token).await?;
+
+    let deck = &database::search_table(database, "decks", &id, "id")
+        .await.map(|deck| {
+            if deck.len() != 1 {
+                return Err((
+                StatusCode::BAD_REQUEST,
+                "you don't own this deck".to_string(),
+            )) } else {
+                Ok(deck)
+            }
+        })
+        .map_err(|_| {
+            (
+                StatusCode::BAD_REQUEST,
+                "you don't own this deck".to_string(),
+            )
+        })??;
+
+    let deck: UserDeck = sqlx::FromRow::from_row(&deck[0]).unwrap();
 
     if deck.owner != owner {
         return Err((
@@ -112,5 +157,5 @@ pub async fn get_deck_list(
         ));
     }
 
-    Ok((StatusCode::OK, Json(deck.to_json(&state.database).await)))
+    Ok(deck)
 }

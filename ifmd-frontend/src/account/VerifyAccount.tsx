@@ -18,7 +18,7 @@ function Verify() {
                 firstRun = true;
 
                 const response = await fetch(
-                    `http://127.0.0.1:3000/api/account/verify/${encodeURIComponent(code)}`
+                    `https://127.0.0.1:3000/api/account/verify/${encodeURIComponent(code)}`
                 )
                 const data = await response.json();
 

@@ -38,7 +38,7 @@ async fn handle_socket<T>(stream: WebSocket, state: Arc<AppState>, lobby_id: Str
     let mut rx = tx.subscribe();
     let (mut sender, mut receiver) = stream.split();
 
-    sender.send(Message::Text(format!("{}", client_struct.client_type.to_string()))).await.unwrap();
+    sender.send(Message::Text(format!("{}", client_struct.client_type.to_string()).into())).await.unwrap();
 
     // Task 1: receive messages from client then broadcast to lobby
     let tx_clone = tx.clone();

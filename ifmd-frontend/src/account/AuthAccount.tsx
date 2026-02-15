@@ -24,7 +24,7 @@ function App() {
     e.preventDefault();
 
     try {
-      const response = await fetch(`http://127.0.0.1:3000/api/account/auth/${form.username}/${form.password}`);
+      const response = await fetch(`https://127.0.0.1:3000/api/account/auth/${form.username}/${form.password}`);
 
       const data = await response.json();
       console.log("Response:", data);

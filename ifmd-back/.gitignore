@@ -2,3 +2,5 @@
 Cargo.lock
 target
 deck.txt
+
+certs/*.pem

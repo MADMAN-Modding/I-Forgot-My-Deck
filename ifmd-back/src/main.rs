@@ -1,10 +1,18 @@
 use axum::{Router, routing::get};
-use ifmd_back::{constants, database, routes::{
-        accounts::{auth_account, make_account, token_auth, verify_account}, cards::get_card_by_exact_name, decks::{add_deck, get_deck_list, get_user_decks}, lobby::ws_handler
-    }, state
+use axum_server::tls_rustls::RustlsConfig;
+use ifmd_back::{
+    constants, database,
+    routes::{
+        accounts::{auth_account, make_account, token_auth, verify_account},
+        cards::get_card_by_exact_name,
+        decks::{add_deck, delete_deck, get_deck_list, get_user_decks},
+        lobby::ws_handler,
+    },
+    state,
 };
-use std::{net::SocketAddr, sync::Arc};
 use tower_http::cors::CorsLayer;
+
+use std::{net::SocketAddr, sync::Arc};
 
 #[tokio::main]
 async fn main() {
@@ -26,25 +34,35 @@ async fn main() {
 
     // Define your router
     let app = Router::new()
-        .route("/api/card/name/:card_name/:card_set", get(get_card_by_exact_name))
-        .route("/api/account/create/:display_name/:id/:email/:pass", get(make_account))
-        .route("/api/account/auth/:id/:pass", get(auth_account))
-        .route("/api/account/verify/:code", get(verify_account))
-        .route("/api/account/token/:token", get(token_auth))
-        .route("/api/decks/add/:deck/:name/:token", get(add_deck))
-        .route("/api/decks/get/:token", get(get_user_decks))
-        .route("/api/deck_list/get/:token/:id", get(get_deck_list))
-        .route("/ws/join/:lobby_id/:client_type", get(ws_handler))
+        .route(
+            "/api/card/name/{card_name}/{card_set}",
+            get(get_card_by_exact_name),
+        )
+        .route(
+            "/api/account/create/{display_name}/{id}/{email}/{password}",
+            get(make_account),
+        )
+        .route("/api/account/auth/{id}/{password}", get(auth_account))
+        .route("/api/account/verify/{code}", get(verify_account))
+        .route("/api/account/token/{token}", get(token_auth))
+        .route("/api/decks/add/{deck}/{name}/{token}", get(add_deck))
+        .route("/api/decks/get/{token}", get(get_user_decks))
+        .route("/api/deck_list/get/{token}/{id}", get(get_deck_list))
+        .route("/api/decks/delete/{token}/{id}", get(delete_deck))
+        .route("/ws/join/{lobby_id}/{client_type}", get(ws_handler))
         .layer(CorsLayer::permissive())
         .with_state(app_state.clone());
+
+    let config = RustlsConfig::from_pem_file("certs/crt.pem", "certs/priv_key.pem")
+        .await
+        .unwrap();
 
     // Start the server
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("Listening on {addr}");
 
-    axum_server::bind(addr)
+    axum_server::bind_rustls(addr, config)
         .serve(app.into_make_service())
         .await
         .unwrap();
-
 }

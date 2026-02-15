@@ -55,7 +55,7 @@ export async function getDeckList(id: string) {
         }
 
         const response = await fetch(
-            `http://127.0.0.1:3000/api/deck_list/get/${encodeURIComponent(token)}/${encodeURIComponent(id)}`
+            `https://127.0.0.1:3000/api/deck_list/get/${encodeURIComponent(token)}/${encodeURIComponent(id)}`
         );
 
         let data = await response.json();
