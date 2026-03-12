@@ -47,6 +47,8 @@ pub async fn add_deck(
         // Split the amount and commander bool
         let (amount, is_commander) = amount_is_commander.split_at(command_split_pos - split_pos);
 
+        let amount = amount.split_at(1).1;
+
         let amount = amount.parse::<i32>().unwrap_or(1);
         let is_commander = is_commander[1..].to_string() == "true";
 
