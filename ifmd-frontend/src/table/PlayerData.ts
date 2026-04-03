@@ -32,8 +32,6 @@ export async function setupPlayerData(id: string) {
 }
 
 export function playerDataJSON(playerData: PlayerData): JSON {
-    console.log(JSON.stringify(playerData));
-
     return JSON.parse(JSON.stringify(playerData));
 };
 

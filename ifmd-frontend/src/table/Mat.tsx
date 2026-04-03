@@ -11,7 +11,7 @@ export function Mat() {
     const [playerData, setPlayerData] = useState<PlayerData>();
 
         useEffect(() => {
-        const websocket = new WebSocket('ws://127.0.0.1:3000/ws/join/123/MAT');
+        const websocket = new WebSocket('wss://127.0.0.1:3000/ws/join/123/MAT');
 
         websocket.onopen = async () => {
             console.log('WebSocket is connected');
@@ -23,7 +23,9 @@ export function Mat() {
             setPlayerData(playerData);
 
             if (playerData) {
-                websocket.send(playerDataJSON(playerData).toString());
+                let json = {"type" : "data", "payload" : playerDataJSON(playerData)};
+
+                websocket.send(JSON.stringify(json));
             } else {
                 console.log("Player data not set yet");
             }
@@ -31,8 +33,13 @@ export function Mat() {
 
         websocket.onmessage = (evt) => {
             const message = (evt.data);
+
+            const json = JSON.parse(message);
+            
+            if (json["type"] == "message") {
             setMessages((prevMessages) =>
                 [...prevMessages, message]);
+        }
         };
 
         websocket.onclose = () => {
@@ -59,15 +66,13 @@ export function Mat() {
     };
 
     const handleInputChange = (event) => {
-        setMessage(event.target.value);
+        if (event.target.value["type"] == "message") {
+            setMessage(event.target.value);
+        }
     };
 
     return (
         <div className="*:text-white">
-            <h1>
-                Real-time Updates with WebSockets
-                and React Hooks - Client {clientID}
-            </h1>
             {messages.map((message, index) =>
                 <p key={index}>{message}</p>)}
             <input type="text" className="border-white border-2
@@ -97,7 +102,7 @@ async function setupPlayerData(id) {
 
     const commanderDamage: Array<number> = [];
 
-    const deck_id = "6f5fd7fe-fddb-4bf0-b027-12da47c46b43";
+    const deck_id = "3b0fc37f-11d2-4030-8e8d-a9100d63026d";
     
     const cards = await getDeckList(deck_id);
 
