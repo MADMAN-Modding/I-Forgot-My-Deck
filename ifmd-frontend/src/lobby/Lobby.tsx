@@ -42,6 +42,11 @@ function Lobby() {
         if (id) navigate(`/table/${id}`);
     }
 
+    function joinAsMaster() {
+        const id = lobbyId.trim();
+        if (id) navigate(`/master/${id}`);
+    }
+
     return (
         <div className="text-white text-center mt-16">
             <h1 className="text-5xl font-bold mb-10">Game Lobby</h1>
@@ -91,6 +96,14 @@ function Lobby() {
                         className="bg-[#555] rounded-xl px-5 py-3 hover:opacity-80 transition disabled:opacity-40"
                     >
                         Watch (Table View)
+                    </button>
+                    <button
+                        onClick={joinAsMaster}
+                        disabled={!lobbyId.trim()}
+                        className="bg-[#2a3a2a] rounded-xl px-5 py-3 hover:opacity-80 transition disabled:opacity-40"
+                        title="Shows all player boards scaled down on one screen"
+                    >
+                        Master View
                     </button>
                 </div>
             </div>

@@ -42,6 +42,7 @@ pub async fn create_lobby(
         allowed_tokens: HashSet::new(),
         waiting_players: Vec::new(),
         waiting_tx,
+        table_count: 0,
     });
 
     (StatusCode::OK, Json(json!({"lobby_id": lobby_id}))).into_response()
@@ -243,6 +244,8 @@ async fn handle_socket<T>(
 ) where T: ClientData {
     println!("Client for lobby {} connected as {}.", lobby_id, client_struct.client_type.to_string());
 
+    let is_table = matches!(client_struct.client_type, ClientType::TABLE);
+
     // MAT connections: reject if the lobby has started and this token wasn't in the waiting room
     if matches!(client_struct.client_type, ClientType::MAT) {
         let reject = {
@@ -263,6 +266,32 @@ async fn handle_socket<T>(
         }
     }
 
+    // TABLE connections: enforce max 5 spectators per lobby (only when a LobbyState exists)
+    let mut table_count_incremented = false;
+    if is_table {
+        let at_limit = {
+            let mut ls = state.lobby_states.lock().unwrap();
+            if let Some(lobby) = ls.get_mut(&lobby_id) {
+                if lobby.table_count >= 5 {
+                    true
+                } else {
+                    lobby.table_count += 1;
+                    table_count_incremented = true;
+                    false
+                }
+            } else {
+                false
+            }
+        };
+        if at_limit {
+            let (mut sender, _) = stream.split();
+            let _ = sender.send(Message::Text(
+                json!({"type": "rejected", "reason": "table_limit"}).to_string().into()
+            )).await;
+            return;
+        }
+    }
+
     // Ensure a broadcast channel exists for this game lobby
     let tx = {
         let mut lobbies = state.lobbies.lock().unwrap();
@@ -277,12 +306,47 @@ async fn handle_socket<T>(
 
     sender.send(Message::Text(client_struct.client_type.to_string().into())).await.unwrap();
 
+    // For MAT clients: send saved game state if one exists for this token + lobby
+    if !is_table {
+        if let Some(ref t) = token {
+            let saved = {
+                let gs = state.game_states.lock().unwrap();
+                gs.get(&lobby_id).and_then(|m| m.get(t).cloned())
+            };
+            if let Some(saved_state) = saved {
+                let msg = json!({"type": "state_restore", "payload": saved_state}).to_string();
+                if sender.send(Message::Text(msg.into())).await.is_err() {
+                    if table_count_incremented {
+                        let mut ls = state.lobby_states.lock().unwrap();
+                        if let Some(lobby) = ls.get_mut(&lobby_id) {
+                            lobby.table_count = lobby.table_count.saturating_sub(1);
+                        }
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
     // Task 1: receive from client, broadcast to lobby
+    // save_state messages are intercepted and stored without being broadcast
     let tx_clone = tx.clone();
     let lobby_clone = lobby_id.clone();
+    let state_clone = state.clone();
+    let token_clone = token.clone();
     tokio::spawn(async move {
         while let Some(Ok(msg)) = receiver.next().await {
             if let Message::Text(text) = msg {
+                // Intercept save_state: persist without broadcasting
+                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text) {
+                    if parsed["type"] == "save_state" {
+                        if let Some(ref t) = token_clone {
+                            let mut gs = state_clone.game_states.lock().unwrap();
+                            gs.entry(lobby_clone.clone()).or_default().insert(t.clone(), parsed);
+                        }
+                        continue;
+                    }
+                }
                 if tx_clone.send(text.to_string()).is_err() {
                     eprintln!("No active listeners in lobby {lobby_clone}");
                 }
@@ -294,6 +358,14 @@ async fn handle_socket<T>(
     while let Ok(msg) = rx.recv().await {
         if sender.send(Message::Text(msg.into())).await.is_err() {
             break;
+        }
+    }
+
+    // Decrement TABLE count when this spectator disconnects
+    if table_count_incremented {
+        let mut ls = state.lobby_states.lock().unwrap();
+        if let Some(lobby) = ls.get_mut(&lobby_id) {
+            lobby.table_count = lobby.table_count.saturating_sub(1);
         }
     }
 }

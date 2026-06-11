@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import type { Card, PlayedCard, PlayerData } from "../types";
 import { getDeckList } from "../decks/BuildDeck";
@@ -16,6 +16,27 @@ interface ContextMenuState {
     index: number;
     x: number;
     y: number;
+}
+
+/** Clamps a context-menu's position so it never overflows the viewport. */
+function useMenuPosition(rawX: number | null, rawY: number | null) {
+    const ref = useRef<HTMLDivElement>(null);
+    const [pos, setPos] = useState({ x: rawX ?? 0, y: rawY ?? 0 });
+
+    useLayoutEffect(() => {
+        if (rawX === null || rawY === null) return;
+        const el = ref.current;
+        if (!el) {
+            setPos({ x: rawX, y: rawY });
+            return;
+        }
+        const { offsetWidth: w, offsetHeight: h } = el;
+        const x = Math.min(rawX, window.innerWidth - w - 8);
+        const y = Math.min(rawY, window.innerHeight - h - 8);
+        setPos({ x: Math.max(8, x), y: Math.max(8, y) });
+    }, [rawX, rawY]);
+
+    return { ref, pos };
 }
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -58,6 +79,9 @@ export function Mat() {
 
     // UI state
     const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+    const [handContextMenu, setHandContextMenu] = useState<ContextMenuState | null>(null);
+    const bfMenu = useMenuPosition(contextMenu?.x ?? null, contextMenu?.y ?? null);
+    const handMenu = useMenuPosition(handContextMenu?.x ?? null, handContextMenu?.y ?? null);
     const [showGraveyard, setShowGraveyard] = useState(false);
     const [showExile, setShowExile] = useState(false);
     const [showTableModal, setShowTableModal] = useState(false);
@@ -65,6 +89,9 @@ export function Mat() {
     const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
     const [showDeckSearch, setShowDeckSearch] = useState(false);
     const [deckSearchQuery, setDeckSearchQuery] = useState("");
+
+    // Scry state
+    const [scryPanel, setScryPanel] = useState<{ cards: Card[]; decisions: ("top" | "bottom")[] } | null>(null);
 
     // All connected players' state (updated from WS broadcasts)
     const [players, setPlayers] = useState<Record<string, PlayerData>>({});
@@ -80,13 +107,20 @@ export function Mat() {
     const lifeRef = useRef(40);
     const cmdDmgRef = useRef<number[]>([]);
     const bfDataRef = useRef<PlayedCard[]>([]);
+    const libraryRef = useRef<Card[]>([]);
+    const graveyardRef = useRef<Card[]>([]);
+    const exileRef = useRef<Card[]>([]);
     const commanderNameRef = useRef<string>("");
     const displayNameRef = useRef<string>("");
+    const deckNameRef = useRef<string>("");
 
     useEffect(() => { handRef.current = hand; }, [hand]);
     useEffect(() => { lifeRef.current = life; }, [life]);
     useEffect(() => { cmdDmgRef.current = commanderDamage; }, [commanderDamage]);
     useEffect(() => { bfDataRef.current = battlefield; }, [battlefield]);
+    useEffect(() => { libraryRef.current = library; }, [library]);
+    useEffect(() => { graveyardRef.current = graveyard; }, [graveyard]);
+    useEffect(() => { exileRef.current = exile; }, [exile]);
 
     // Fetch user decks when component mounts
     useEffect(() => {
@@ -185,6 +219,10 @@ export function Mat() {
             lifeRef.current = 40;
             cmdDmgRef.current = [];
             bfDataRef.current = initialBattlefield;
+            libraryRef.current = shuffled;
+            graveyardRef.current = [];
+            exileRef.current = [];
+            deckNameRef.current = selectedName;
 
             const token = getToken() ?? "";
             const ws = new WebSocket(`wss://127.0.0.1:3000/ws/join/${lobbyId}/MAT/${encodeURIComponent(token)}`);
@@ -199,6 +237,25 @@ export function Mat() {
                         ws.close();
                         navigate("/lobby");
                         return;
+                    } else if (json.type === "state_restore" && json.payload) {
+                        // Restore previously saved game state after reconnect
+                        const p = json.payload;
+                        const newLib: Card[] = p.library ?? [];
+                        const newHand: Card[] = p.hand ?? [];
+                        const newBf: PlayedCard[] = p.battlefield ?? [];
+                        const newGy: Card[] = p.graveyard ?? [];
+                        const newEx: Card[] = p.exile ?? [];
+                        const newLife: number = p.life ?? 40;
+                        const newCmdDmg: number[] = p.commander_damage ?? [];
+                        setLibrary(newLib); setHand(newHand); setBattlefield(newBf);
+                        setGraveyard(newGy); setExile(newEx); setLife(newLife);
+                        setCommanderDamage(newCmdDmg);
+                        handRef.current = newHand; lifeRef.current = newLife;
+                        cmdDmgRef.current = newCmdDmg; bfDataRef.current = newBf;
+                        libraryRef.current = newLib; graveyardRef.current = newGy;
+                        exileRef.current = newEx;
+                        if (p.commander_name) commanderNameRef.current = p.commander_name;
+                        if (p.deck_name) deckNameRef.current = p.deck_name;
                     } else if (json.type === "data" && json.clientId && json.payload) {
                         setPlayers((prev) => ({ ...prev, [json.clientId]: json.payload }));
                     } else if (json.type === "table_joined") {
@@ -215,6 +272,7 @@ export function Mat() {
             if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
             syncIntervalRef.current = setInterval(() => {
                 sendState(handRef.current, bfDataRef.current, lifeRef.current, cmdDmgRef.current, selectedName);
+                sendSaveState();
             }, 5000);
 
             setPhase("playing");
@@ -236,6 +294,8 @@ export function Mat() {
         if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
         const token = getToken() ?? "anonymous";
+        const bfEl = battlefieldRef.current;
+        const viewport = bfEl ? { width: bfEl.clientWidth, height: bfEl.clientHeight } : undefined;
         const playerData: PlayerData = {
             hand: { cards: currentHand },
             played_cards: currentBattlefield,
@@ -243,12 +303,30 @@ export function Mat() {
             commander_damage: currentCmdDmg,
             // Strip deck ID and owner — other clients should never receive them
             deck: { id: "", name: currentDeckName, cards: commanderNameRef.current, owner: displayNameRef.current },
+            viewport,
         };
 
         ws.send(JSON.stringify({
             type: "data",
             clientId: token,
             payload: playerDataJSON(playerData),
+        }));
+    }
+
+    function sendSaveState() {
+        const ws = wsRef.current;
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        ws.send(JSON.stringify({
+            type: "save_state",
+            hand: handRef.current,
+            library: libraryRef.current,
+            graveyard: graveyardRef.current,
+            exile: exileRef.current,
+            battlefield: bfDataRef.current,
+            life: lifeRef.current,
+            commander_damage: cmdDmgRef.current,
+            deck_name: deckNameRef.current,
+            commander_name: commanderNameRef.current,
         }));
     }
 
@@ -361,6 +439,122 @@ export function Mat() {
     function libraryCardToExile(card: Card) {
         setLibrary((prev) => { const idx = prev.indexOf(card); return prev.filter((_, i) => i !== idx); });
         setExile((prev) => [...prev, card]);
+    }
+
+    // ── Hand deck manipulation ────────────────────────────────────────────────
+
+    function sendHandCardToTop(index: number) {
+        const card = hand[index];
+        const newHand = hand.filter((_, i) => i !== index);
+        const newLibrary = [card, ...library];
+        setHand(newHand);
+        setLibrary(newLibrary);
+        sendState(newHand, battlefield, life, commanderDamage);
+        setHandContextMenu(null);
+    }
+
+    function sendHandCardToBottom(index: number) {
+        const card = hand[index];
+        const newHand = hand.filter((_, i) => i !== index);
+        const newLibrary = [...library, card];
+        setHand(newHand);
+        setLibrary(newLibrary);
+        sendState(newHand, battlefield, life, commanderDamage);
+        setHandContextMenu(null);
+    }
+
+    function sendHandCardToRandom(index: number) {
+        const card = hand[index];
+        const newHand = hand.filter((_, i) => i !== index);
+        const newLibrary = [...library];
+        const pos = Math.floor(Math.random() * (newLibrary.length + 1));
+        newLibrary.splice(pos, 0, card);
+        setHand(newHand);
+        setLibrary(newLibrary);
+        sendState(newHand, battlefield, life, commanderDamage);
+        setHandContextMenu(null);
+    }
+
+    function sendHandCardToGraveyard(index: number) {
+        const card = hand[index];
+        const newHand = hand.filter((_, i) => i !== index);
+        setHand(newHand);
+        setGraveyard((prev) => [...prev, card]);
+        sendState(newHand, battlefield, life, commanderDamage);
+        setHandContextMenu(null);
+    }
+
+    function sendHandCardToExile(index: number) {
+        const card = hand[index];
+        const newHand = hand.filter((_, i) => i !== index);
+        setHand(newHand);
+        setExile((prev) => [...prev, card]);
+        sendState(newHand, battlefield, life, commanderDamage);
+        setHandContextMenu(null);
+    }
+
+    // ── Graveyard actions ─────────────────────────────────────────────────────
+
+    function graveyardCardToHand(index: number) {
+        const card = graveyard[index];
+        const newGy = graveyard.filter((_, i) => i !== index);
+        const newHand = [...hand, card];
+        setGraveyard(newGy);
+        setHand(newHand);
+        sendState(newHand, battlefield, life, commanderDamage);
+    }
+
+    function graveyardCardToTop(index: number) {
+        const card = graveyard[index];
+        const newGy = graveyard.filter((_, i) => i !== index);
+        setGraveyard(newGy);
+        setLibrary((prev) => [card, ...prev]);
+    }
+
+    function graveyardCardToBottom(index: number) {
+        const card = graveyard[index];
+        const newGy = graveyard.filter((_, i) => i !== index);
+        setGraveyard(newGy);
+        setLibrary((prev) => [...prev, card]);
+    }
+
+    // ── Exile actions ─────────────────────────────────────────────────────────
+
+    function exileCardToHand(index: number) {
+        const card = exile[index];
+        const newEx = exile.filter((_, i) => i !== index);
+        const newHand = [...hand, card];
+        setExile(newEx);
+        setHand(newHand);
+        sendState(newHand, battlefield, life, commanderDamage);
+    }
+
+    // ── Scry ──────────────────────────────────────────────────────────────────
+
+    function startScry(count: number) {
+        const cards = library.slice(0, Math.min(count, library.length));
+        if (cards.length === 0) return;
+        setScryPanel({ cards, decisions: Array(cards.length).fill("top") });
+    }
+
+    function setScryDecision(index: number, decision: "top" | "bottom") {
+        if (!scryPanel) return;
+        const newDecisions = [...scryPanel.decisions];
+        newDecisions[index] = decision;
+        setScryPanel({ ...scryPanel, decisions: newDecisions });
+    }
+
+    function resolveScry() {
+        if (!scryPanel) return;
+        const remaining = library.slice(scryPanel.cards.length);
+        const topCards: Card[] = [];
+        const bottomCards: Card[] = [];
+        scryPanel.cards.forEach((card, i) => {
+            if (scryPanel.decisions[i] === "bottom") bottomCards.push(card);
+            else topCards.push(card);
+        });
+        setLibrary([...topCards, ...remaining, ...bottomCards]);
+        setScryPanel(null);
     }
 
     function adjustLife(delta: number) {
@@ -481,7 +675,7 @@ export function Mat() {
         <div
             className="text-white flex flex-col select-none"
             style={{ height: "100vh" }}
-            onClick={() => setContextMenu(null)}
+            onClick={() => { setContextMenu(null); setHandContextMenu(null); }}
         >
             {/* ── Top bar: life & info ── */}
             <div className="flex items-center gap-3 bg-[#1a1a1a] px-4 py-2 flex-shrink-0 flex-wrap">
@@ -661,8 +855,9 @@ export function Mat() {
             {/* ── Context menu ── */}
             {contextMenu !== null && (
                 <div
+                    ref={bfMenu.ref}
                     className="fixed bg-[#2a2a2a] border border-[#555] rounded-lg shadow-xl z-50 py-1 text-sm"
-                    style={{ left: contextMenu.x, top: contextMenu.y }}
+                    style={{ left: bfMenu.pos.x, top: bfMenu.pos.y }}
                     onClick={(e) => e.stopPropagation()}
                 >
                     <button
@@ -700,6 +895,95 @@ export function Mat() {
                 </div>
             )}
 
+            {/* ── Hand card context menu ── */}
+            {handContextMenu !== null && (
+                <div
+                    ref={handMenu.ref}
+                    className="fixed bg-[#2a2a2a] border border-[#555] rounded-lg shadow-xl z-50 py-1 text-sm"
+                    style={{ left: handMenu.pos.x, top: handMenu.pos.y }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="px-4 py-1 text-[#888] text-xs border-b border-[#444] mb-1">
+                        {hand[handContextMenu.index]?.display_name ?? hand[handContextMenu.index]?.name}
+                    </div>
+                    <button className="block w-full text-left px-4 py-2 hover:bg-[#3a3a3a]" onClick={() => { playCard(handContextMenu.index); setHandContextMenu(null); }}>
+                        Play to Battlefield
+                    </button>
+                    <button className="block w-full text-left px-4 py-2 hover:bg-[#3a3a3a]" onClick={() => libraryCardToHand(hand[handContextMenu.index])}>
+                        Return to Library
+                    </button>
+                    <button className="block w-full text-left px-4 py-2 hover:bg-[#3a3a3a]" onClick={() => sendHandCardToTop(handContextMenu.index)}>
+                        Send to Top of Deck
+                    </button>
+                    <button className="block w-full text-left px-4 py-2 hover:bg-[#3a3a3a]" onClick={() => sendHandCardToBottom(handContextMenu.index)}>
+                        Send to Bottom of Deck
+                    </button>
+                    <button className="block w-full text-left px-4 py-2 hover:bg-[#3a3a3a]" onClick={() => sendHandCardToRandom(handContextMenu.index)}>
+                        Insert at Random Position
+                    </button>
+                    <button className="block w-full text-left px-4 py-2 hover:bg-[#3a3a3a]" onClick={() => sendHandCardToGraveyard(handContextMenu.index)}>
+                        Send to Graveyard
+                    </button>
+                    <button className="block w-full text-left px-4 py-2 hover:bg-[#3a3a3a]" onClick={() => sendHandCardToExile(handContextMenu.index)}>
+                        Send to Exile
+                    </button>
+                </div>
+            )}
+
+            {/* ── Scry panel ── */}
+            {scryPanel && (
+                <div
+                    className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center"
+                    onClick={() => setScryPanel(null)}
+                >
+                    <div
+                        className="bg-[#1e1e1e] rounded-2xl p-6 max-w-3xl w-full mx-4"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h2 className="text-lg font-bold mb-1">
+                            Scry {scryPanel.cards.length}
+                        </h2>
+                        <p className="text-[#888] text-xs mb-5">
+                            Choose whether each card stays on top or goes to the bottom of your library.
+                        </p>
+                        <div className="flex gap-5 overflow-x-auto pb-2 justify-center mb-5">
+                            {scryPanel.cards.map((card, i) => (
+                                <div key={i} className="flex flex-col items-center gap-2 flex-shrink-0">
+                                    <img
+                                        src={cardImageUrl(card)}
+                                        alt={card.display_name ?? card.name}
+                                        className="h-36 rounded-xl shadow-lg"
+                                    />
+                                    <p className="text-xs text-[#aaa] max-w-[6rem] text-center truncate">
+                                        {card.display_name ?? card.name}
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setScryDecision(i, "top")}
+                                            className={`px-3 py-1 rounded-lg text-sm font-semibold transition ${scryPanel.decisions[i] === "top" ? "bg-(--main-color)" : "bg-[#333] hover:bg-[#444]"}`}
+                                        >
+                                            Top
+                                        </button>
+                                        <button
+                                            onClick={() => setScryDecision(i, "bottom")}
+                                            className={`px-3 py-1 rounded-lg text-sm font-semibold transition ${scryPanel.decisions[i] === "bottom" ? "bg-[#b87a00]" : "bg-[#333] hover:bg-[#444]"}`}
+                                        >
+                                            Bottom
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <button
+                            onClick={resolveScry}
+                            className="w-full bg-(--main-color) rounded-xl py-2 font-semibold hover:opacity-80 transition"
+                        >
+                            Confirm Scry
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* ── Bottom panel ── */}
             <div className="bg-[#111] flex-shrink-0">
                 {/* Controls */}
@@ -720,6 +1004,17 @@ export function Mat() {
                     >
                         Shuffle
                     </button>
+                    {[1, 2, 3].map((n) => (
+                        <button
+                            key={n}
+                            onClick={() => startScry(n)}
+                            disabled={library.length === 0}
+                            className="bg-[#2a3a2a] rounded-lg px-2 py-1 hover:bg-[#3a4a3a] transition disabled:opacity-40 text-xs"
+                            title={`Look at top ${n} card${n > 1 ? "s" : ""} and choose top or bottom`}
+                        >
+                            Scry {n}
+                        </button>
+                    ))}
                     <button
                         onClick={() => { setShowDeckSearch(!showDeckSearch); setDeckSearchQuery(""); }}
                         disabled={library.length === 0}
@@ -841,13 +1136,14 @@ export function Mat() {
                             <span className="text-[#555] self-center text-sm">Empty</span>
                         )}
                         {exile.map((card, i) => (
-                            <div key={`ex-${i}`} className="flex-shrink-0">
+                            <div key={`ex-${i}`} className="flex-shrink-0 flex flex-col items-center gap-1">
                                 <img
                                     src={cardImageUrl(card)}
                                     alt={card.display_name ?? card.name}
-                                    className="h-24 rounded shadow"
+                                    className="h-20 rounded shadow"
                                     title={card.display_name ?? card.name}
                                 />
+                                <button onClick={() => exileCardToHand(i)} className="text-[10px] bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white rounded px-1 py-0.5">Hand</button>
                             </div>
                         ))}
                     </div>
@@ -863,13 +1159,21 @@ export function Mat() {
                             Graveyard:
                         </span>
                         {graveyard.map((card, i) => (
-                            <div key={`gy-${i}`} className="flex-shrink-0">
+                            <div
+                                key={`gy-${i}`}
+                                className="flex-shrink-0 flex flex-col items-center gap-1"
+                            >
                                 <img
                                     src={cardImageUrl(card)}
                                     alt={card.display_name ?? card.name}
-                                    className="h-24 rounded shadow"
+                                    className="h-20 rounded shadow"
                                     title={card.display_name ?? card.name}
                                 />
+                                <div className="flex gap-1 flex-wrap justify-center">
+                                    <button onClick={() => graveyardCardToHand(i)} className="text-[10px] bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white rounded px-1 py-0.5">Hand</button>
+                                    <button onClick={() => graveyardCardToTop(i)} className="text-[10px] bg-[#334] hover:bg-[#445] text-white rounded px-1 py-0.5">Top</button>
+                                    <button onClick={() => graveyardCardToBottom(i)} className="text-[10px] bg-[#334] hover:bg-[#445] text-white rounded px-1 py-0.5">Bottom</button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -884,8 +1188,13 @@ export function Mat() {
                         <div
                             key={`hand-${index}`}
                             className="flex-shrink-0 cursor-pointer hover:scale-105 hover:-translate-y-2 transition-transform"
-                            title={`Play: ${card.display_name ?? card.name}`}
+                            title={`Click to play · Right-click for more options`}
                             onClick={() => playCard(index)}
+                            onContextMenu={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setHandContextMenu({ index, x: e.clientX, y: e.clientY });
+                            }}
                         >
                             <img
                                 src={cardImageUrl(card)}
