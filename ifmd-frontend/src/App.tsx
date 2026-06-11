@@ -11,6 +11,8 @@ import Auth from "./account/AuthAccount.tsx";
 import CreateDeck from "./decks/CreateDeck.tsx";
 import { ViewUserDecks, ViewDeckFromID } from "./decks/ViewDeck.tsx";
 import { Mat } from "./table/Mat.tsx";
+import { Table } from "./table/Table.tsx";
+import Lobby from "./lobby/Lobby.tsx";
 
 function App() {
     return (
@@ -46,8 +48,16 @@ function App() {
                         element={<ViewDeckFromID/>}
                     />
                     <Route
-                        path="/mat"
+                        path="/lobby"
+                        element={<Lobby/>}
+                    />
+                    <Route
+                        path="/mat/:lobbyId"
                         element={<Mat/>}
+                    />
+                    <Route
+                        path="/table/:lobbyId"
+                        element={<Table/>}
                     />
                     <Route
                         path="*"

@@ -56,6 +56,8 @@ function Home() {
 
                 <a href="/deck/view/user">View Decks</a>
 
+                <a href="/lobby">Join Game</a>
+
                 {/* Auth area */}
                 <div>
                     {checkedAuth && displayName ? (

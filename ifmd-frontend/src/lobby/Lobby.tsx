@@ -1,0 +1,76 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+function Lobby() {
+    const [lobbyId, setLobbyId] = useState("");
+    const navigate = useNavigate();
+
+    function createGame() {
+        const id = crypto.randomUUID();
+        navigate(`/mat/${id}`);
+    }
+
+    function joinAsMat() {
+        const id = lobbyId.trim();
+        if (id) navigate(`/mat/${id}`);
+    }
+
+    function joinAsTable() {
+        const id = lobbyId.trim();
+        if (id) navigate(`/table/${id}`);
+    }
+
+    return (
+        <div className="text-white text-center mt-16">
+            <h1 className="text-5xl font-bold mb-10">Game Lobby</h1>
+
+            {/* Create a new game */}
+            <div className="bg-[#333333] rounded-2xl w-fit m-auto p-8 mb-6">
+                <h2 className="text-xl font-semibold mb-4">Start a New Game</h2>
+                <button
+                    onClick={createGame}
+                    className="bg-(--main-color) rounded-xl px-6 py-3 text-lg hover:opacity-80 transition"
+                >
+                    Create Game
+                </button>
+                <p className="text-[#aaa] text-sm mt-3">
+                    A lobby ID will be generated — share it with friends to join.
+                </p>
+            </div>
+
+            {/* Join an existing game */}
+            <div className="bg-[#333333] rounded-2xl w-fit m-auto p-8 flex flex-col gap-6">
+                <h2 className="text-xl font-semibold">Join an Existing Game</h2>
+                <div>
+                    <label className="text-sm block mb-2 text-[#aaa]">Lobby ID</label>
+                    <input
+                        type="text"
+                        value={lobbyId}
+                        onChange={(e) => setLobbyId(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && joinAsMat()}
+                        className="bg-(--main-color) rounded-xl p-2 text-white text-center w-72"
+                        placeholder="Paste lobby ID here..."
+                    />
+                </div>
+                <div className="flex gap-4 justify-center">
+                    <button
+                        onClick={joinAsMat}
+                        disabled={!lobbyId.trim()}
+                        className="bg-(--main-color) rounded-xl px-5 py-3 hover:opacity-80 transition disabled:opacity-40"
+                    >
+                        Join as Player
+                    </button>
+                    <button
+                        onClick={joinAsTable}
+                        disabled={!lobbyId.trim()}
+                        className="bg-[#555] rounded-xl px-5 py-3 hover:opacity-80 transition disabled:opacity-40"
+                    >
+                        Watch (Table View)
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default Lobby;
