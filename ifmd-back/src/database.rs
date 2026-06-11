@@ -69,8 +69,8 @@ pub async fn start_db() -> Pool<Sqlite> {
 pub async fn input_card(database: &Pool<Sqlite>, card: &Card) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
-        INSERT INTO card_name_to_id_cache (name, display_name, id, url, set_id)
-        VALUES (?1, ?2, ?3, ?4, ?5)
+        INSERT INTO card_name_to_id_cache (name, display_name, id, url, set_id, is_two_faced)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6)
         "#,
     )
     .bind(&card.name.to_lowercase())
@@ -78,6 +78,7 @@ pub async fn input_card(database: &Pool<Sqlite>, card: &Card) -> Result<(), sqlx
     .bind(&card.id.to_lowercase())
     .bind(&card.url.to_lowercase())
     .bind(&card.set_id.as_deref().unwrap_or("").to_lowercase())
+    .bind(card.is_two_faced)
     .execute(&*database)
     .await?;
 

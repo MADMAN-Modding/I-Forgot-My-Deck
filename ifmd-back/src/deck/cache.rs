@@ -32,24 +32,20 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
     let card_id = res["id"].as_str().ok_or_else(|| anyhow::anyhow!("No id for card: {card_name}"))?;
     let file_path = build_path(card_id).await?;
     let card_display_name = res["name"].as_str();
-    let card_img_download: &str; 
-    let is_two_faced: bool = card_name.contains("//");
+    let card_img_download: &str;
+
+    // Only layouts with per-face image_uris on opposite physical sides of the card
+    // should be treated as double-faced. "split" and "flip" cards also use "//" in
+    // their names but have a single root-level image_uris object.
+    let layout = res["layout"].as_str().unwrap_or("normal");
+    let is_two_faced: bool = matches!(layout, "transform" | "modal_dfc" | "double_faced_token" | "art_series" | "reversible_card");
 
     if is_two_faced {
-        // Handle double-faced card names
-        let parts: Vec<&str> = card_name.split("//").collect();
-        if parts.len() != 2 {
-            return Err(anyhow::anyhow!("Invalid double-faced card name: {card_name}"));
-        }
-        let first_face = parts[0].trim();
-        let second_face = parts[1].trim();
-    
-        let card_name = format!("{} // {}", first_face, second_face);
         card_img_download = res["card_faces"][0]["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No front image for card: {card_name}"))?;
 
         // Download Front Face
         download_image(card_img_download, &file_path, card_id).await?;
-        
+
         // Download Back Face
         let back_file_path = file_path.replace(".png", "_back.png");
         let back_img_url = res["card_faces"][1]["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No back image for card: {card_name}"))?;

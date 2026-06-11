@@ -27,9 +27,13 @@ function shuffleArray<T>(arr: T[]): T[] {
     return shuffled;
 }
 
-function cardImageUrl(card: Card): string {
+function cardImageUrl(card: Card, showFront = true): string {
     if (!card.url) return "";
-    return card.url.startsWith("http") ? card.url : `/${card.url}`;
+    const base = card.url.startsWith("http") ? card.url : `/${card.url}`;
+    if (!showFront && card.is_two_faced) {
+        return base.replace(".png", "_back.png");
+    }
+    return base;
 }
 
 export function Mat() {
@@ -49,15 +53,19 @@ export function Mat() {
     const [hand, setHand] = useState<Card[]>([]);
     const [battlefield, setBattlefield] = useState<PlayedCard[]>([]);
     const [graveyard, setGraveyard] = useState<Card[]>([]);
+    const [exile, setExile] = useState<Card[]>([]);
     const [life, setLife] = useState(40);
     const [commanderDamage, setCommanderDamage] = useState<number[]>([]);
 
     // UI state
     const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
     const [showGraveyard, setShowGraveyard] = useState(false);
+    const [showExile, setShowExile] = useState(false);
     const [showTableModal, setShowTableModal] = useState(false);
     const [lobbyCopied, setLobbyCopied] = useState(false);
     const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
+    const [showDeckSearch, setShowDeckSearch] = useState(false);
+    const [deckSearchQuery, setDeckSearchQuery] = useState("");
 
     // All connected players' state (updated from WS broadcasts)
     const [players, setPlayers] = useState<Record<string, PlayerData>>({});
@@ -287,6 +295,48 @@ export function Mat() {
         setContextMenu(null);
     }
 
+    function moveToExile(index: number) {
+        const card = battlefield[index].card;
+        const newBf = battlefield.filter((_, i) => i !== index);
+        setBattlefield(newBf);
+        setExile((prev) => [...prev, card]);
+        sendState(hand, newBf, life, commanderDamage);
+        setContextMenu(null);
+    }
+
+    // Move a card from the library to a zone by its index in the full library array
+    function libraryCardToHand(card: Card) {
+        setLibrary((prev) => { const idx = prev.indexOf(card); return prev.filter((_, i) => i !== idx); });
+        setHand((prev) => [...prev, card]);
+    }
+
+    function libraryCardToBattlefield(card: Card) {
+        setLibrary((prev) => { const idx = prev.indexOf(card); return prev.filter((_, i) => i !== idx); });
+        const col = battlefield.length % 8;
+        const row = Math.floor(battlefield.length / 8);
+        const played: PlayedCard = {
+            card,
+            show_front: true,
+            tapped: false,
+            location: [10 + col * 100, 10 + row * 150],
+            rotation: 0,
+            strength_mod: 0,
+            toughness_mod: 0,
+            counters: [],
+        };
+        setBattlefield((prev) => { const next = [...prev, played]; sendState(hand, next, life, commanderDamage); return next; });
+    }
+
+    function libraryCardToGraveyard(card: Card) {
+        setLibrary((prev) => { const idx = prev.indexOf(card); return prev.filter((_, i) => i !== idx); });
+        setGraveyard((prev) => [...prev, card]);
+    }
+
+    function libraryCardToExile(card: Card) {
+        setLibrary((prev) => { const idx = prev.indexOf(card); return prev.filter((_, i) => i !== idx); });
+        setExile((prev) => [...prev, card]);
+    }
+
     function adjustLife(delta: number) {
         const newLife = life + delta;
         setLife(newLife);
@@ -314,6 +364,11 @@ export function Mat() {
         setLibrary(allCards);
         setHand(newHand);
         sendState(newHand, battlefield, life, commanderDamage);
+    }
+
+    function shuffleLibrary() {
+        const shuffled = shuffleArray([...library]);
+        setLibrary(shuffled);
     }
 
     // ── Drag & drop ───────────────────────────────────────────────────────────
@@ -520,7 +575,7 @@ export function Mat() {
                             left: pc.location[0],
                             top: pc.location[1],
                             transform: pc.tapped ? "rotate(90deg)" : "rotate(0deg)",
-                            transformOrigin: "top left",
+                            transformOrigin: "center",
                             cursor: "grab",
                             zIndex: draggingRef.current?.cardIndex === index ? 100 : 1,
                             transition:
@@ -543,7 +598,7 @@ export function Mat() {
                         onDoubleClick={(e) => {
                             e.stopPropagation();
                             setLightbox({
-                                src: cardImageUrl(pc.card),
+                                src: cardImageUrl(pc.card, pc.show_front),
                                 alt: pc.card.display_name ?? pc.card.name,
                             });
                         }}
@@ -554,9 +609,9 @@ export function Mat() {
                         }}
                     >
                         <img
-                            src={cardImageUrl(pc.card)}
+                            src={cardImageUrl(pc.card, pc.show_front)}
                             alt={pc.card.display_name ?? pc.card.name}
-                            className="h-28 w-auto group-hover:h-[26rem] transition-[height] duration-300 ease-out rounded-lg shadow-lg border border-[#333]"
+                            className="h-28 w-auto rounded-lg shadow-lg border border-[#333]"
                             draggable={false}
                             title={pc.card.display_name ?? pc.card.name}
                         />
@@ -610,6 +665,12 @@ export function Mat() {
                     >
                         Move to Graveyard
                     </button>
+                    <button
+                        className="block w-full text-left px-4 py-2 hover:bg-[#3a3a3a]"
+                        onClick={() => moveToExile(contextMenu.index)}
+                    >
+                        Move to Exile
+                    </button>
                 </div>
             )}
 
@@ -626,6 +687,22 @@ export function Mat() {
                         Draw
                     </button>
                     <button
+                        onClick={shuffleLibrary}
+                        disabled={library.length === 0}
+                        className="bg-[#444] rounded-lg px-3 py-1 hover:bg-[#555] transition disabled:opacity-40"
+                        title="Shuffle the library"
+                    >
+                        Shuffle
+                    </button>
+                    <button
+                        onClick={() => { setShowDeckSearch(!showDeckSearch); setDeckSearchQuery(""); }}
+                        disabled={library.length === 0}
+                        className="bg-[#444] rounded-lg px-3 py-1 hover:bg-[#555] transition disabled:opacity-40"
+                        title="Search your library"
+                    >
+                        Search Library
+                    </button>
+                    <button
                         onClick={mulligan}
                         className="bg-[#444] rounded-lg px-3 py-1 hover:bg-[#555] transition"
                         title="Shuffle hand back and draw one fewer card"
@@ -638,8 +715,117 @@ export function Mat() {
                     >
                         Graveyard: {graveyard.length}
                     </button>
+                    <button
+                        onClick={() => setShowExile(!showExile)}
+                        className="bg-[#4a3a00] rounded-lg px-3 py-1 hover:bg-[#5a4a00] transition"
+                    >
+                        Exile: {exile.length}
+                    </button>
                     <span className="ml-auto text-[#aaa]">Hand: {hand.length}</span>
                 </div>
+
+                {/* Deck search panel */}
+                {showDeckSearch && (
+                    <div className="bg-[#1a1a1a] border-t border-[#333] p-2">
+                        <div className="flex items-center gap-2 mb-2">
+                            <input
+                                type="text"
+                                value={deckSearchQuery}
+                                onChange={(e) => setDeckSearchQuery(e.target.value)}
+                                placeholder="Search library..."
+                                autoFocus
+                                className="bg-[#2a2a2a] text-white rounded-lg px-3 py-1 text-sm flex-1 border border-[#444] focus:outline-none focus:border-[#888]"
+                            />
+                            <button
+                                onClick={() => setShowDeckSearch(false)}
+                                className="text-[#888] hover:text-white text-lg leading-none px-2"
+                            >
+                                ×
+                            </button>
+                        </div>
+                        <div
+                            className="flex gap-3 overflow-x-auto pb-1"
+                            style={{ maxHeight: "180px" }}
+                        >
+                            {!deckSearchQuery.trim() && (
+                                <p className="text-[#555] self-center text-sm">Type to search your library.</p>
+                            )}
+                            {deckSearchQuery.trim() && library
+                                .filter((card) => {
+                                    const q = deckSearchQuery.toLowerCase();
+                                    return (
+                                        card.name.toLowerCase().includes(q) ||
+                                        (card.display_name ?? "").toLowerCase().includes(q)
+                                    );
+                                })
+                                .map((card, i) => (
+                                    <div
+                                        key={`search-${i}`}
+                                        className="flex-shrink-0 flex flex-col items-center gap-1"
+                                    >
+                                        <img
+                                            src={cardImageUrl(card)}
+                                            alt={card.display_name ?? card.name}
+                                            className="h-24 rounded shadow cursor-pointer hover:opacity-80"
+                                            title={"Double-click to enlarge"}
+                                            onDoubleClick={() =>
+                                                setLightbox({
+                                                    src: cardImageUrl(card),
+                                                    alt: card.display_name ?? card.name,
+                                                })
+                                            }
+                                        />
+                                        <p className="text-white text-xs text-center max-w-[5rem] truncate">
+                                            {card.display_name ?? card.name}
+                                        </p>
+                                        <div className="flex gap-1 flex-wrap justify-center">
+                                            <button onClick={() => libraryCardToHand(card)} className="text-[10px] bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white rounded px-1 py-0.5">Hand</button>
+                                            <button onClick={() => libraryCardToBattlefield(card)} className="text-[10px] bg-(--main-color) hover:opacity-80 text-white rounded px-1 py-0.5">Board</button>
+                                            <button onClick={() => libraryCardToGraveyard(card)} className="text-[10px] bg-[#333] hover:bg-[#444] text-white rounded px-1 py-0.5">Grave</button>
+                                            <button onClick={() => libraryCardToExile(card)} className="text-[10px] bg-[#4a3a00] hover:bg-[#5a4a00] text-white rounded px-1 py-0.5">Exile</button>
+                                        </div>
+                                    </div>
+                                ))}
+                            {deckSearchQuery.trim() &&
+                                library.filter((card) => {
+                                    const q = deckSearchQuery.toLowerCase();
+                                    return (
+                                        card.name.toLowerCase().includes(q) ||
+                                        (card.display_name ?? "").toLowerCase().includes(q)
+                                    );
+                                }).length === 0 && (
+                                    <p className="text-[#555] self-center text-sm">
+                                        No cards found.
+                                    </p>
+                                )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Exile panel */}
+                {showExile && (
+                    <div
+                        className="flex gap-2 overflow-x-auto p-2 bg-[#1a1400] border-t border-[#333]"
+                        style={{ maxHeight: "130px" }}
+                    >
+                        <span className="text-[#aaa] self-center text-xs mr-1 flex-shrink-0">
+                            Exile:
+                        </span>
+                        {exile.length === 0 && (
+                            <span className="text-[#555] self-center text-sm">Empty</span>
+                        )}
+                        {exile.map((card, i) => (
+                            <div key={`ex-${i}`} className="flex-shrink-0">
+                                <img
+                                    src={cardImageUrl(card)}
+                                    alt={card.display_name ?? card.name}
+                                    className="h-24 rounded shadow"
+                                    title={card.display_name ?? card.name}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 {/* Graveyard panel */}
                 {showGraveyard && graveyard.length > 0 && (

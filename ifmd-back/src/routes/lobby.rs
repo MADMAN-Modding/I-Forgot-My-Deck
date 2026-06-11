@@ -45,8 +45,6 @@ async fn handle_socket<T>(stream: WebSocket, state: Arc<AppState>, lobby_id: Str
     let lobby_clone = lobby_id.clone();
     tokio::spawn(async move {
         while let Some(Ok(msg)) = receiver.next().await {
-            println!("tx message");
-
             if let Message::Text(text) = msg {
                 if tx_clone.send(text.to_string()).is_err() {
                     eprintln!("No active listeners in lobby {lobby_clone}");
@@ -57,8 +55,6 @@ async fn handle_socket<T>(stream: WebSocket, state: Arc<AppState>, lobby_id: Str
 
     // Task 2: receive broadcasts then send to client
     while let Ok(msg) = rx.recv().await {
-        println!("rx message");
-
         if sender.send(Message::Text(msg.into())).await.is_err() {
             break;
         }
