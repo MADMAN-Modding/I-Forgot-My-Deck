@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import type { PlayerData, PlayedCard } from "../types";
+import { CardLightbox } from "./components/CardLightbox";
 
 interface PlayerEntry {
     clientId: string;
@@ -127,8 +128,8 @@ interface PlayerCardProps {
     onClick: () => void;
 }
 
-function PlayerCard({ clientId, data, onClick }: PlayerCardProps) {
-    const shortId = clientId.slice(0, 8);
+function PlayerCard({ clientId: _clientId, data, onClick }: PlayerCardProps) {
+    const commanderName = data.deck?.cards;
 
     return (
         <div
@@ -139,7 +140,7 @@ function PlayerCard({ clientId, data, onClick }: PlayerCardProps) {
             <div className="flex items-center gap-3 bg-[#2a2a2a] px-4 py-3">
                 <div>
                     <p className="font-bold">{data.deck?.name ?? "Unknown Deck"}</p>
-                    <p className="text-xs text-[#888] font-mono">{shortId}…</p>
+                    {commanderName && <p className="text-xs text-[#888]">{commanderName}</p>}
                 </div>
                 <div className="ml-auto text-center">
                     <p className="text-4xl font-bold">{data.life}</p>
@@ -169,14 +170,16 @@ function PlayerCard({ clientId, data, onClick }: PlayerCardProps) {
     );
 }
 
-function BoardDetail({ clientId, data }: { clientId: string; data: PlayerData }) {
+function BoardDetail({ clientId: _clientId, data }: { clientId: string; data: PlayerData }) {
+    const commanderName = data.deck?.cards;
+    const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
     return (
         <div>
             {/* Header */}
             <div className="flex items-center gap-4 bg-[#2a2a2a] rounded-xl px-4 py-3 mb-4">
                 <div>
                     <p className="font-bold text-xl">{data.deck?.name ?? "Unknown Deck"}</p>
-                    <p className="text-xs text-[#888] font-mono">{clientId}</p>
+                    {commanderName && <p className="text-sm text-[#888]">{commanderName}</p>}
                 </div>
                 <div className="ml-auto text-center">
                     <p className="text-5xl font-bold">{data.life}</p>
@@ -205,17 +208,22 @@ function BoardDetail({ clientId, data }: { clientId: string; data: PlayerData })
                     {data.played_cards.map((pc: PlayedCard, i: number) => (
                         <div
                             key={i}
-                            className="relative"
+                            className="relative flex-shrink-0 overflow-visible"
                             style={{
+                                height: "9rem",
                                 transform: pc.tapped ? "rotate(90deg)" : "none",
                                 transformOrigin: "center",
                             }}
                             title={pc.card.display_name ?? pc.card.name}
+                            onDoubleClick={() => setLightbox({
+                                src: cardImageUrl(pc.card.url),
+                                alt: pc.card.display_name ?? pc.card.name,
+                            })}
                         >
                             <img
                                 src={cardImageUrl(pc.card.url)}
                                 alt={pc.card.display_name ?? pc.card.name}
-                                className="h-36 rounded-xl shadow-lg"
+                                className="h-36 hover:h-[30rem] transition-[height] duration-200 ease-out rounded-xl shadow-lg relative"
                             />
                             {(pc.strength_mod !== 0 || pc.toughness_mod !== 0) && (
                                 <div className="absolute bottom-0 right-0 bg-black text-white text-xs rounded px-1">
@@ -236,6 +244,13 @@ function BoardDetail({ clientId, data }: { clientId: string; data: PlayerData })
             <p className="text-xs text-[#444] italic">
                 Hand ({data.hand?.cards?.length ?? 0} cards) — hidden
             </p>
+            {lightbox && (
+                <CardLightbox
+                    src={lightbox.src}
+                    alt={lightbox.alt}
+                    onClose={() => setLightbox(null)}
+                />
+            )}
         </div>
     );
 }

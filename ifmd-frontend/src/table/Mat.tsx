@@ -4,6 +4,7 @@ import type { Card, PlayedCard, PlayerData } from "../types";
 import { getDeckList } from "../decks/BuildDeck";
 import { playerDataJSON } from "./PlayerData";
 import { getToken } from "../account/AccountManagement";
+import { CardLightbox } from "./components/CardLightbox";
 
 interface DragState {
     cardIndex: number;
@@ -41,7 +42,7 @@ export function Mat() {
     // Deck selection
     const [userDecks, setUserDecks] = useState<[string, string][]>([]);
     const [deckName, setDeckName] = useState("");
-    const [deckId, setDeckId] = useState("");
+
 
     // Game state
     const [library, setLibrary] = useState<Card[]>([]);
@@ -55,6 +56,8 @@ export function Mat() {
     const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
     const [showGraveyard, setShowGraveyard] = useState(false);
     const [showTableModal, setShowTableModal] = useState(false);
+    const [lobbyCopied, setLobbyCopied] = useState(false);
+    const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
 
     // All connected players' state (updated from WS broadcasts)
     const [players, setPlayers] = useState<Record<string, PlayerData>>({});
@@ -70,10 +73,12 @@ export function Mat() {
     const lifeRef = useRef(40);
     const cmdDmgRef = useRef<number[]>([]);
     const bfDataRef = useRef<PlayedCard[]>([]);
+    const commanderNameRef = useRef<string>("");
 
     useEffect(() => { handRef.current = hand; }, [hand]);
     useEffect(() => { lifeRef.current = life; }, [life]);
     useEffect(() => { cmdDmgRef.current = commanderDamage; }, [commanderDamage]);
+    useEffect(() => { bfDataRef.current = battlefield; }, [battlefield]);
 
     // Fetch user decks when component mounts
     useEffect(() => {
@@ -111,9 +116,15 @@ export function Mat() {
 
             const cards: Card[] = deckData.cards;
 
+            // Find the commander name to share with other players
+            const commander = cards.find((c) => c.is_commander);
+            commanderNameRef.current = commander?.display_name ?? commander?.name ?? "";
+
             // Expand each card by its card_amount for the library
+            // Commander is excluded — it starts on the battlefield
             const allCards: Card[] = [];
             for (const card of cards) {
+                if (card.is_commander) continue;
                 for (let i = 0; i < Math.max(1, card.card_amount); i++) {
                     allCards.push({ ...card });
                 }
@@ -122,11 +133,22 @@ export function Mat() {
             const shuffled = shuffleArray(allCards);
             const openingHand = shuffled.splice(0, 7);
 
-            setDeckId(selectedId);
+            // Place commander in top-left of the battlefield
+            const initialBattlefield: PlayedCard[] = commander ? [{
+                card: commander,
+                show_front: true,
+                tapped: false,
+                location: [10, 10],
+                rotation: 0,
+                strength_mod: 0,
+                toughness_mod: 0,
+                counters: [],
+            }] : [];
+
             setDeckName(selectedName);
             setLibrary(shuffled);
             setHand(openingHand);
-            setBattlefield([]);
+            setBattlefield(initialBattlefield);
             setGraveyard([]);
             setLife(40);
             setCommanderDamage([]);
@@ -134,7 +156,7 @@ export function Mat() {
             handRef.current = openingHand;
             lifeRef.current = 40;
             cmdDmgRef.current = [];
-            bfDataRef.current = [];
+            bfDataRef.current = initialBattlefield;
 
             const ws = new WebSocket(`wss://127.0.0.1:3000/ws/join/${lobbyId}/MAT`);
             ws.onopen = () => console.log("Connected to lobby", lobbyId);
@@ -147,7 +169,7 @@ export function Mat() {
                         setPlayers((prev) => ({ ...prev, [json.clientId]: json.payload }));
                     } else if (json.type === "table_joined") {
                         // A TABLE viewer just connected — immediately re-broadcast our state
-                        sendState(handRef.current, bfDataRef.current, lifeRef.current, cmdDmgRef.current, selectedId, selectedName);
+                        sendState(handRef.current, bfDataRef.current, lifeRef.current, cmdDmgRef.current, selectedName);
                     }
                 } catch {
                     // ignore non-JSON messages
@@ -158,7 +180,7 @@ export function Mat() {
             // Re-broadcast state every 5 s so late-joining TABLE clients get updates
             if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
             syncIntervalRef.current = setInterval(() => {
-                sendState(handRef.current, bfDataRef.current, lifeRef.current, cmdDmgRef.current, selectedId, selectedName);
+                sendState(handRef.current, bfDataRef.current, lifeRef.current, cmdDmgRef.current, selectedName);
             }, 5000);
 
             setPhase("playing");
@@ -174,7 +196,6 @@ export function Mat() {
         currentBattlefield: PlayedCard[],
         currentLife: number,
         currentCmdDmg: number[],
-        currentDeckId = deckId,
         currentDeckName = deckName,
     ) {
         const ws = wsRef.current;
@@ -186,7 +207,8 @@ export function Mat() {
             played_cards: currentBattlefield,
             life: currentLife,
             commander_damage: currentCmdDmg,
-            deck: { id: currentDeckId, name: currentDeckName, cards: "", owner: token },
+            // Strip deck ID and owner — other clients should never receive them
+            deck: { id: "", name: currentDeckName, cards: commanderNameRef.current, owner: "" },
         };
 
         ws.send(JSON.stringify({
@@ -390,7 +412,19 @@ export function Mat() {
                 </a>
                 <span className="text-sm text-[#aaa]">
                     Lobby:{" "}
-                    <span className="text-white font-mono">{lobbyId}</span>
+                    <button
+                        className="text-white font-mono hover:underline cursor-pointer"
+                        title="Click to copy lobby ID"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(lobbyId ?? "");
+                            setLobbyCopied(true);
+                            setTimeout(() => setLobbyCopied(false), 2000);
+                        }}
+                    >
+                        {lobbyId}
+                    </button>
+                    {lobbyCopied && <span className="ml-1 text-green-400 text-xs">Copied!</span>}
                 </span>
                 <span className="text-sm text-[#aaa]">
                     Deck: <span className="text-white">{deckName}</span>
@@ -481,7 +515,7 @@ export function Mat() {
                 {battlefield.map((pc, index) => (
                     <div
                         key={`field-${index}`}
-                        className="absolute"
+                        className="absolute group"
                         style={{
                             left: pc.location[0],
                             top: pc.location[1],
@@ -494,7 +528,25 @@ export function Mat() {
                                     ? "none"
                                     : "transform 0.15s",
                         }}
+                        onMouseEnter={(e) => {
+                            // Elevate above other cards on hover without touching drag logic
+                            if (draggingRef.current?.cardIndex !== index) {
+                                (e.currentTarget as HTMLDivElement).style.zIndex = "200";
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (draggingRef.current?.cardIndex !== index) {
+                                (e.currentTarget as HTMLDivElement).style.zIndex = "1";
+                            }
+                        }}
                         onMouseDown={(e) => handleCardMouseDown(e, index)}
+                        onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            setLightbox({
+                                src: cardImageUrl(pc.card),
+                                alt: pc.card.display_name ?? pc.card.name,
+                            });
+                        }}
                         onContextMenu={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -504,7 +556,7 @@ export function Mat() {
                         <img
                             src={cardImageUrl(pc.card)}
                             alt={pc.card.display_name ?? pc.card.name}
-                            className="w-20 rounded-lg shadow-lg border border-[#333]"
+                            className="h-28 w-auto group-hover:h-[26rem] transition-[height] duration-300 ease-out rounded-lg shadow-lg border border-[#333]"
                             draggable={false}
                             title={pc.card.display_name ?? pc.card.name}
                         />
@@ -639,6 +691,15 @@ export function Mat() {
                 </div>
             </div>
 
+            {/* ── Lightbox ── */}
+            {lightbox && (
+                <CardLightbox
+                    src={lightbox.src}
+                    alt={lightbox.alt}
+                    onClose={() => setLightbox(null)}
+                />
+            )}
+
             {/* ── Table view modal ── */}
             {showTableModal && (
                 <div
@@ -658,7 +719,7 @@ export function Mat() {
                                 ×
                             </button>
                         </div>
-                        <TableModalContent players={players} />
+                        <TableModalContent players={players} selfId={getToken() ?? "anonymous"} />
                     </div>
                 </div>
             )}
@@ -666,7 +727,7 @@ export function Mat() {
     );
 }
 
-function TableModalContent({ players }: { players: Record<string, PlayerData> }) {
+function TableModalContent({ players, selfId }: { players: Record<string, PlayerData>; selfId: string }) {
     const [selected, setSelected] = useState<string | null>(null);
 
     if (Object.keys(players).length === 0) {
@@ -696,7 +757,9 @@ function TableModalContent({ players }: { players: Record<string, PlayerData> })
             className="grid gap-3"
             style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}
         >
-            {Object.entries(players).map(([clientId, data]) => (
+        {Object.entries(players)
+            .filter(([clientId]) => clientId !== selfId)
+            .map(([clientId, data]) => (
                 <PlayerSummaryCard
                     key={clientId}
                     clientId={clientId}
@@ -709,7 +772,7 @@ function TableModalContent({ players }: { players: Record<string, PlayerData> })
 }
 
 function PlayerSummaryCard({
-    clientId,
+    clientId: _clientId,
     data,
     onClick,
 }: {
@@ -725,7 +788,7 @@ function PlayerSummaryCard({
             <div className="flex items-center gap-2 bg-[#2a2a2a] px-3 py-2">
                 <div>
                     <p className="font-bold text-sm">{data.deck?.name ?? "Unknown Deck"}</p>
-                    <p className="text-xs text-[#888] font-mono">{clientId.slice(0, 8)}…</p>
+                    {data.deck?.cards && <p className="text-xs text-[#888]">{data.deck.cards}</p>}
                 </div>
                 <div className="ml-auto text-center">
                     <p className="text-2xl font-bold">{data.life}</p>
@@ -749,14 +812,15 @@ function PlayerSummaryCard({
     );
 }
 
-function BoardDetail({ clientId, data }: { clientId: string; data: PlayerData }) {
+function BoardDetail({ data }: { clientId: string; data: PlayerData }) {
+    const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
     return (
         <div>
             {/* Header */}
             <div className="flex items-center gap-4 bg-[#2a2a2a] rounded-xl px-4 py-3 mb-4">
                 <div>
                     <p className="font-bold text-lg">{data.deck?.name ?? "Unknown Deck"}</p>
-                    <p className="text-xs text-[#888] font-mono">{clientId}</p>
+                    {data.deck?.cards && <p className="text-sm text-[#888]">{data.deck.cards}</p>}
                 </div>
                 <div className="ml-auto text-center">
                     <p className="text-4xl font-bold">{data.life}</p>
@@ -775,9 +839,12 @@ function BoardDetail({ clientId, data }: { clientId: string; data: PlayerData })
             )}
 
             {/* Battlefield */}
-            <p className="text-xs text-[#666] mb-2">
-                Battlefield ({data.played_cards?.length ?? 0} cards)
-            </p>
+            <div className="flex items-center gap-2 mb-2">
+                <p className="text-xs text-[#666]">
+                    Battlefield ({data.played_cards?.length ?? 0} cards)
+                </p>
+                <p className="text-xs text-[#444] italic">— double-click a card to enlarge</p>
+            </div>
             {!data.played_cards || data.played_cards.length === 0 ? (
                 <p className="text-[#444] text-sm mb-4">Nothing on the battlefield.</p>
             ) : (
@@ -789,17 +856,21 @@ function BoardDetail({ clientId, data }: { clientId: string; data: PlayerData })
                         return (
                             <div
                                 key={i}
-                                className="relative"
+                                className="relative flex-shrink-0 cursor-pointer"
                                 style={{
                                     transform: pc.tapped ? "rotate(90deg)" : "none",
                                     transformOrigin: "center",
                                 }}
                                 title={pc.card.display_name ?? pc.card.name}
+                                onDoubleClick={() => setLightbox({
+                                    src: imgSrc,
+                                    alt: pc.card.display_name ?? pc.card.name,
+                                })}
                             >
                                 <img
                                     src={imgSrc}
                                     alt={pc.card.display_name ?? pc.card.name}
-                                    className="h-28 rounded-lg shadow"
+                                    className="h-28 w-auto rounded-lg shadow"
                                 />
                                 {(pc.strength_mod !== 0 || pc.toughness_mod !== 0) && (
                                     <div className="absolute bottom-0 right-0 bg-black text-white text-xs rounded px-1">
@@ -821,6 +892,13 @@ function BoardDetail({ clientId, data }: { clientId: string; data: PlayerData })
             <p className="text-xs text-[#444] italic">
                 Hand ({data.hand?.cards?.length ?? 0} cards) — hidden
             </p>
+            {lightbox && (
+                <CardLightbox
+                    src={lightbox.src}
+                    alt={lightbox.alt}
+                    onClose={() => setLightbox(null)}
+                />
+            )}
         </div>
     );
 }
