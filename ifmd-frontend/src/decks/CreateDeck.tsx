@@ -1,5 +1,6 @@
 
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Card, Deck } from "../types";
 import { processDeck } from "./BuildDeck";
 import { ViewDeck }  from "./ViewDeck";
@@ -51,6 +52,7 @@ interface UploadDeckData {
 }
 
 function CreateDeck() {
+  const navigate = useNavigate();
   const [deck, setDeck] = useState<Deck | null>(null);
   const [deckList, setDeckList] = useState("");
   const [error, setError] = useState("");
@@ -72,7 +74,8 @@ function CreateDeck() {
       );
 
       if (response.ok) {
-        setUploadDeckState("Uploaded")
+        setUploadDeckState("Uploaded");
+        setTimeout(() => navigate("/"), 800);
       }
     } catch (err) {
       setUploadDeckState("Could not Upload")
@@ -172,7 +175,14 @@ function CreateDeck() {
             required
           />
 
-          <p onClick={handleDeckSubmit} className="text-2xl ml-auto mr-auto text-white text-center hover:cursor-pointer w-fit bg-(--main-color) p-1 mt-3 rounded-2xl">
+          <p
+            onClick={uploadDeckState === "Upload" ? handleDeckSubmit : undefined}
+            className={`text-2xl ml-auto mr-auto text-white text-center w-fit p-1 mt-3 rounded-2xl ${
+              uploadDeckState === "Upload"
+                ? "hover:cursor-pointer bg-(--main-color)"
+                : "cursor-not-allowed opacity-50 bg-[#555]"
+            }`}
+          >
             {uploadDeckState} Deck
           </p>
         </form>

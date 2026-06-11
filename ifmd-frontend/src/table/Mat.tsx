@@ -82,6 +82,7 @@ export function Mat() {
     const cmdDmgRef = useRef<number[]>([]);
     const bfDataRef = useRef<PlayedCard[]>([]);
     const commanderNameRef = useRef<string>("");
+    const displayNameRef = useRef<string>("");
 
     useEffect(() => { handRef.current = hand; }, [hand]);
     useEffect(() => { lifeRef.current = life; }, [life]);
@@ -106,6 +107,26 @@ export function Mat() {
             }
         }
         fetchUserDecks();
+    }, []);
+
+    // Fetch display name for this player
+    useEffect(() => {
+        async function fetchDisplayName() {
+            const token = getToken();
+            if (!token) return;
+            try {
+                const res = await fetch(
+                    `https://127.0.0.1:3000/api/account/token/${encodeURIComponent(token)}`
+                );
+                if (res.ok) {
+                    const data = await res.json();
+                    displayNameRef.current = data.displayName ?? "";
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        fetchDisplayName();
     }, []);
 
     // Clean up WebSocket and sync interval on unmount
@@ -216,7 +237,7 @@ export function Mat() {
             life: currentLife,
             commander_damage: currentCmdDmg,
             // Strip deck ID and owner — other clients should never receive them
-            deck: { id: "", name: currentDeckName, cards: commanderNameRef.current, owner: "" },
+            deck: { id: "", name: currentDeckName, cards: commanderNameRef.current, owner: displayNameRef.current },
         };
 
         ws.send(JSON.stringify({
@@ -488,7 +509,7 @@ export function Mat() {
                     onClick={(e) => { e.stopPropagation(); setShowTableModal(true); }}
                     className="bg-[#444] rounded-lg px-3 py-1 text-sm hover:bg-[#555] transition"
                 >
-                    Show Table ({Object.keys(players).length})
+                    Show Table ({Object.keys(players).length != 0 ? Object.keys(players).length - 1 : 0})
                 </button>
                 <div className="flex items-center gap-2 ml-auto">
                     <span className="text-sm">Life:</span>
@@ -975,6 +996,7 @@ function PlayerSummaryCard({
                 <div>
                     <p className="font-bold text-sm">{data.deck?.name ?? "Unknown Deck"}</p>
                     {data.deck?.cards && <p className="text-xs text-[#888]">{data.deck.cards}</p>}
+                    {data.deck?.owner && <p className="text-xs text-[#666]">{data.deck.owner}</p>}
                 </div>
                 <div className="ml-auto text-center">
                     <p className="text-2xl font-bold">{data.life}</p>
@@ -1007,6 +1029,7 @@ function BoardDetail({ data }: { clientId: string; data: PlayerData }) {
                 <div>
                     <p className="font-bold text-lg">{data.deck?.name ?? "Unknown Deck"}</p>
                     {data.deck?.cards && <p className="text-sm text-[#888]">{data.deck.cards}</p>}
+                    {data.deck?.owner && <p className="text-sm text-[#666]">{data.deck.owner}</p>}
                 </div>
                 <div className="ml-auto text-center">
                     <p className="text-4xl font-bold">{data.life}</p>

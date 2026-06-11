@@ -45,12 +45,15 @@ export function ViewDeck({ deck }: ViewDeckProps) {
 
                     <div className="cards-grid grid grid-cols-5 gap-4 bg-black m-4 rounded-xl p-2 col-span-2">
                         {deck?.cards.slice(1).map(card => (
-                            <div key={card.id} className="card bg-[#333333] p-2 rounded-xl">
-                                <div className="container">
-                                    <h4>
-                                        <b>{card.card_amount} {card.display_name ?? card.name}</b>
-                                    </h4>
-                                </div>
+                            <div key={card.id} className="card bg-[#333333] p-2 rounded-xl flex flex-col items-center">
+                                <img
+                                    className="w-full rounded-lg mb-1"
+                                    src={location + card.url}
+                                    alt={"Image of: " + (card.display_name ?? card.name)}
+                                />
+                                <h4 className="text-center text-xs">
+                                    <b>{card.card_amount > 1 ? `${card.card_amount}× ` : ""}{card.display_name ?? card.name}</b>
+                                </h4>
                             </div>
                         ))}
                     </div>

@@ -141,6 +141,7 @@ function PlayerCard({ clientId: _clientId, data, onClick }: PlayerCardProps) {
                 <div>
                     <p className="font-bold">{data.deck?.name ?? "Unknown Deck"}</p>
                     {commanderName && <p className="text-xs text-[#888]">{commanderName}</p>}
+                    {data.deck?.owner && <p className="text-xs text-[#666]">{data.deck.owner}</p>}
                 </div>
                 <div className="ml-auto text-center">
                     <p className="text-4xl font-bold">{data.life}</p>
@@ -180,6 +181,7 @@ function BoardDetail({ clientId: _clientId, data }: { clientId: string; data: Pl
                 <div>
                     <p className="font-bold text-xl">{data.deck?.name ?? "Unknown Deck"}</p>
                     {commanderName && <p className="text-sm text-[#888]">{commanderName}</p>}
+                    {data.deck?.owner && <p className="text-sm text-[#666]">{data.deck.owner}</p>}
                 </div>
                 <div className="ml-auto text-center">
                     <p className="text-5xl font-bold">{data.life}</p>
