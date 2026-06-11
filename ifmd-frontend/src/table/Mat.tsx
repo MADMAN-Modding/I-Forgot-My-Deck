@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import type { Card, PlayedCard, PlayerData } from "../types";
 import { getDeckList } from "../decks/BuildDeck";
 import { playerDataJSON } from "./PlayerData";
@@ -38,8 +38,7 @@ function cardImageUrl(card: Card, showFront = true): string {
 
 export function Mat() {
     const { lobbyId } = useParams<{ lobbyId: string }>();
-
-    // Phase
+    const navigate = useNavigate();
     const [phase, setPhase] = useState<"deck-select" | "playing">("deck-select");
     const [loading, setLoading] = useState(false);
 
@@ -187,14 +186,20 @@ export function Mat() {
             cmdDmgRef.current = [];
             bfDataRef.current = initialBattlefield;
 
-            const ws = new WebSocket(`wss://127.0.0.1:3000/ws/join/${lobbyId}/MAT`);
+            const token = getToken() ?? "";
+            const ws = new WebSocket(`wss://127.0.0.1:3000/ws/join/${lobbyId}/MAT/${encodeURIComponent(token)}`);
             ws.onopen = () => console.log("Connected to lobby", lobbyId);
             ws.onclose = () => console.log("Disconnected from lobby");
             ws.onmessage = (evt) => {
                 if (evt.data === "MAT") return;
                 try {
                     const json = JSON.parse(evt.data);
-                    if (json.type === "data" && json.clientId && json.payload) {
+                    if (json.type === "rejected") {
+                        // Server rejected this connection — not in the allowed player list
+                        ws.close();
+                        navigate("/lobby");
+                        return;
+                    } else if (json.type === "data" && json.clientId && json.payload) {
                         setPlayers((prev) => ({ ...prev, [json.clientId]: json.payload }));
                     } else if (json.type === "table_joined") {
                         // A TABLE viewer just connected — immediately re-broadcast our state

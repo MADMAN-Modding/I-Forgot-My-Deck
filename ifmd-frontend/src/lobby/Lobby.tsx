@@ -1,18 +1,40 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getToken } from "../account/AccountManagement";
 
 function Lobby() {
     const [lobbyId, setLobbyId] = useState("");
+    const [creating, setCreating] = useState(false);
+    const [error, setError] = useState("");
     const navigate = useNavigate();
 
-    function createGame() {
+    async function createGame() {
+        const token = getToken();
+        if (!token) { setError("You must be logged in to create a game."); return; }
+        setCreating(true);
+        setError("");
         const id = crypto.randomUUID();
-        navigate(`/mat/${id}`);
+        try {
+            const res = await fetch(
+                `https://127.0.0.1:3000/api/lobby/create/${encodeURIComponent(id)}/${encodeURIComponent(token)}`
+            );
+            if (!res.ok) {
+                const body = await res.json();
+                setError(body.error ?? "Failed to create lobby.");
+                setCreating(false);
+                return;
+            }
+        } catch {
+            setError("Could not reach the server.");
+            setCreating(false);
+            return;
+        }
+        navigate(`/waiting/${id}`);
     }
 
-    function joinAsMat() {
+    function joinAsPlayer() {
         const id = lobbyId.trim();
-        if (id) navigate(`/mat/${id}`);
+        if (id) navigate(`/waiting/${id}`);
     }
 
     function joinAsTable() {
@@ -24,14 +46,17 @@ function Lobby() {
         <div className="text-white text-center mt-16">
             <h1 className="text-5xl font-bold mb-10">Game Lobby</h1>
 
+            {error && <p className="text-red-400 mb-4 text-sm">{error}</p>}
+
             {/* Create a new game */}
             <div className="bg-[#333333] rounded-2xl w-fit m-auto p-8 mb-6">
                 <h2 className="text-xl font-semibold mb-4">Start a New Game</h2>
                 <button
                     onClick={createGame}
-                    className="bg-(--main-color) rounded-xl px-6 py-3 text-lg hover:opacity-80 transition"
+                    disabled={creating}
+                    className="bg-(--main-color) rounded-xl px-6 py-3 text-lg hover:opacity-80 transition disabled:opacity-50"
                 >
-                    Create Game
+                    {creating ? "Creating…" : "Create Game"}
                 </button>
                 <p className="text-[#aaa] text-sm mt-3">
                     A lobby ID will be generated — share it with friends to join.
@@ -47,14 +72,14 @@ function Lobby() {
                         type="text"
                         value={lobbyId}
                         onChange={(e) => setLobbyId(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && joinAsMat()}
+                        onKeyDown={(e) => e.key === "Enter" && joinAsPlayer()}
                         className="bg-(--main-color) rounded-xl p-2 text-white text-center w-72"
                         placeholder="Paste lobby ID here..."
                     />
                 </div>
                 <div className="flex gap-4 justify-center">
                     <button
-                        onClick={joinAsMat}
+                        onClick={joinAsPlayer}
                         disabled={!lobbyId.trim()}
                         className="bg-(--main-color) rounded-xl px-5 py-3 hover:opacity-80 transition disabled:opacity-40"
                     >

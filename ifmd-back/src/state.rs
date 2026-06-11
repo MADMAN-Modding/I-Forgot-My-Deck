@@ -1,13 +1,35 @@
-use std::{collections::HashMap, sync::Mutex};
+use std::{collections::{HashMap, HashSet}, sync::Mutex};
 
 use tokio::sync::broadcast;
 
 use crate::{account::email::EmailConfig, json_handler::get_email_config, queue::QueueManager};
 
+/// A player waiting in the lobby waiting room
+pub struct WaitingPlayer {
+    pub token: String,
+    pub display_name: String,
+}
+
+/// Per-lobby state for the waiting room and game access control
+pub struct LobbyState {
+    /// Token of the player who created the lobby
+    pub creator_token: String,
+    /// Whether the game has been started by the creator
+    pub started: bool,
+    /// Tokens that are allowed to connect as MAT (set when game starts)
+    pub allowed_tokens: HashSet<String>,
+    /// Players currently in the waiting room
+    pub waiting_players: Vec<WaitingPlayer>,
+    /// Broadcast channel for waiting room messages
+    pub waiting_tx: broadcast::Sender<String>,
+}
+
 pub struct AppState {
     pub fetch_queue: QueueManager,
-    /// Active WebSocket lobbies
+    /// Active WebSocket game lobbies (broadcast channels for MAT/TABLE)
     pub lobbies: Mutex<HashMap<String, broadcast::Sender<String>>>,
+    /// Waiting room state per lobby
+    pub lobby_states: Mutex<HashMap<String, LobbyState>>,
     pub database: sqlx::Pool<sqlx::Sqlite>,
     pub email_config: EmailConfig,
 }
@@ -19,8 +41,9 @@ impl AppState {
         Self { 
             fetch_queue: QueueManager::new(),
             lobbies: Mutex::new(HashMap::new()),
+            lobby_states: Mutex::new(HashMap::new()),
             database,
-            email_config
+            email_config,
         }
     }
 }

@@ -6,7 +6,9 @@ use sqlx::{Error, Pool, Sqlite};
 use crate::{account::{code::Code, token::Token}, constants, database::{delete_row, get_all_rows}};
 
 fn sqlite_time_to_epoch_seconds(time: &str) -> Result<i64, Error> {
-    // SQLite CURRENT_TIMESTAMP format: "YYYY-MM-DD HH:MM:SS"
+    // SQLite timestamps may include fractional seconds: "YYYY-MM-DD HH:MM:SS.ffffff"
+    // Strip everything after (and including) the decimal point before parsing.
+    let time = time.split('.').next().unwrap_or(time);
     let naive = NaiveDateTime::parse_from_str(time, "%Y-%m-%d %H:%M:%S")
         .map_err(|e| Error::Decode(Box::new(e)))?;
 

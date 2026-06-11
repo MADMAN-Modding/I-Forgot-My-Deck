@@ -6,7 +6,7 @@ use ifmd_back::{
         accounts::{auth_account, make_account, token_auth, verify_account},
         cards::get_card_by_exact_name,
         decks::{add_deck, delete_deck, get_deck_list, get_user_decks},
-        lobby::ws_handler,
+        lobby::{create_lobby, ws_handler, ws_handler_auth, ws_waiting_handler},
     },
     state,
 };
@@ -50,6 +50,9 @@ async fn main() {
         .route("/api/deck_list/get/{token}/{id}", get(get_deck_list))
         .route("/api/decks/delete/{token}/{id}", get(delete_deck))
         .route("/ws/join/{lobby_id}/{client_type}", get(ws_handler))
+        .route("/ws/join/{lobby_id}/{client_type}/{token}", get(ws_handler_auth))
+        .route("/ws/waiting/{lobby_id}/{token}", get(ws_waiting_handler))
+        .route("/api/lobby/create/{lobby_id}/{token}", get(create_lobby))
         .layer(CorsLayer::permissive())
         .with_state(app_state.clone());
 

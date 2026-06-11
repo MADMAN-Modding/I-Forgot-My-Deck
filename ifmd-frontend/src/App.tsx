@@ -13,6 +13,7 @@ import { ViewUserDecks, ViewDeckFromID } from "./decks/ViewDeck.tsx";
 import { Mat } from "./table/Mat.tsx";
 import { Table } from "./table/Table.tsx";
 import Lobby from "./lobby/Lobby.tsx";
+import Waiting from "./lobby/Waiting.tsx";
 
 function App() {
     return (
@@ -50,6 +51,10 @@ function App() {
                     <Route
                         path="/lobby"
                         element={<Lobby/>}
+                    />
+                    <Route
+                        path="/waiting/:lobbyId"
+                        element={<Waiting/>}
                     />
                     <Route
                         path="/mat/:lobbyId"
