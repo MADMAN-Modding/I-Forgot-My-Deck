@@ -8,12 +8,12 @@ function CreateAccount() {
     password: ""
   });
 
-  function handleChange(e) {
+  function handleChange(e: { target: { name: any; value: any; }; }) {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
   }
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e: { preventDefault: () => void; }) {
     e.preventDefault();
 
     try {
@@ -29,7 +29,6 @@ function CreateAccount() {
       }
     } catch (err) {
       console.error(err);
-      alert("Error: " + err.message);
     }
   }
 

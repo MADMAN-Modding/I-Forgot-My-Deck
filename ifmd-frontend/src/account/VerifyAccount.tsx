@@ -18,7 +18,7 @@ function Verify() {
                 firstRun = true;
 
                 const response = await fetch(
-                    `https://127.0.0.1:3000/api/account/verify/${encodeURIComponent(code)}`
+                    `https://127.0.0.1:3000/api/account/verify/${encodeURIComponent(code ?? "NO_CODE")}`
                 )
                 const data = await response.json();
 
@@ -30,7 +30,6 @@ function Verify() {
                 }
             } catch (err) {
                 setStatus('error');
-                setMessage(err.message)
             }
         }
 

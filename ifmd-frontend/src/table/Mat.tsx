@@ -5,6 +5,7 @@ import { getDeckList } from "../decks/BuildDeck";
 import { playerDataJSON } from "./PlayerData";
 import { getToken } from "../account/AccountManagement";
 import { CardLightbox } from "./components/CardLightbox";
+import { WSS_URL } from "../../constants";
 
 interface DragState {
     cardIndex: number;
@@ -225,7 +226,7 @@ export function Mat() {
             deckNameRef.current = selectedName;
 
             const token = getToken() ?? "";
-            const ws = new WebSocket(`wss://127.0.0.1:3000/ws/join/${lobbyId}/MAT/${encodeURIComponent(token)}`);
+            const ws = new WebSocket(`wss://${WSS_URL}/ws/join/${lobbyId}/MAT/${encodeURIComponent(token)}`);
             ws.onopen = () => console.log("Connected to lobby", lobbyId);
             ws.onclose = () => console.log("Disconnected from lobby");
             ws.onmessage = (evt) => {

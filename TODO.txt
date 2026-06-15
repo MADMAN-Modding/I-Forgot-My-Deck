@@ -1,5 +1,0 @@
-Redo database module with generics
-
-Validation of user input on the frontend and backend
-
-Game board

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getToken } from "../account/AccountManagement";
+import { WSS_URL } from "../../constants"
 
 interface WaitingPlayer {
     name: string;
@@ -23,7 +24,7 @@ export default function Waiting() {
             return;
         }
 
-        const ws = new WebSocket(`wss://127.0.0.1:3000/ws/waiting/${lobbyId}/${token}`);
+        const ws = new WebSocket(`wss://${WSS_URL}/ws/waiting/${lobbyId}/${token}`);
         wsRef.current = ws;
 
         ws.onopen = () => setStatus("waiting");

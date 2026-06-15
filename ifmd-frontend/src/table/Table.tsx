@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import type { PlayerData, PlayedCard } from "../types";
 import { CardLightbox } from "./components/CardLightbox";
+import { WSS_URL } from "../../constants";
 
 interface PlayerEntry {
     clientId: string;
@@ -21,7 +22,7 @@ export function Table() {
     const wsRef = useRef<WebSocket | null>(null);
 
     useEffect(() => {
-        const ws = new WebSocket(`wss://127.0.0.1:3000/ws/join/${lobbyId}/TABLE`);
+        const ws = new WebSocket(`wss://${WSS_URL}/ws/join/${lobbyId}/TABLE`);
 
         ws.onopen = () => {
             console.log("TABLE connected to lobby", lobbyId);

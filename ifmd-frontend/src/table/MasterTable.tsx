@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import type { PlayerData, PlayedCard } from "../types";
+import { WSS_URL } from "../../constants";
 
 interface PlayerEntry {
     clientId: string;
@@ -150,7 +151,7 @@ export function MasterTable() {
     }, []);
 
     useEffect(() => {
-        const ws = new WebSocket(`wss://127.0.0.1:3000/ws/join/${lobbyId}/TABLE`);
+        const ws = new WebSocket(`wss://${WSS_URL}/ws/join/${lobbyId}/TABLE`);
 
         ws.onopen = () => {
             setConnected(true);
