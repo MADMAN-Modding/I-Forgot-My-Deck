@@ -59,15 +59,15 @@ async fn main() {
         .layer(CorsLayer::permissive())
         .with_state(app_state.clone());
 
-    let config = RustlsConfig::from_pem_file("certs/crt.pem", "certs/priv_key.pem")
-        .await
-        .unwrap();
-
     // Start the server
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("Listening on {addr}");
 
     if cfg!(debug_assertions) {
+        let config = RustlsConfig::from_pem_file("certs/crt.pem", "certs/priv_key.pem")
+            .await
+            .unwrap();
+
         axum_server::bind_rustls(addr, config)
             .serve(app.into_make_service())
             .await
