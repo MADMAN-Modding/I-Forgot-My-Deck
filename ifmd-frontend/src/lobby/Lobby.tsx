@@ -17,7 +17,7 @@ function Lobby() {
         const id = crypto.randomUUID();
         try {
             const res = await fetch(
-                `wss://${WSS_URL}:3000/api/lobby/create/${encodeURIComponent(id)}/${encodeURIComponent(token)}`
+                `wss://${WSS_URL}/api/lobby/create/${encodeURIComponent(id)}/${encodeURIComponent(token)}`
             );
             if (!res.ok) {
                 const body = await res.json();

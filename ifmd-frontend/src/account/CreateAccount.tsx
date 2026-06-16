@@ -18,7 +18,7 @@ function CreateAccount() {
     e.preventDefault();
 
     try {
-      const response = await fetch(`wss://${WSS_URL}:3000/api/account/create/${encodeURIComponent(form.display_name)}/${form.username}/${form.email}/${form.password}`);
+      const response = await fetch(`wss://${WSS_URL}/api/account/create/${encodeURIComponent(form.display_name)}/${form.username}/${form.email}/${form.password}`);
 
       const data = await response.json();
       console.log("Response:", data);

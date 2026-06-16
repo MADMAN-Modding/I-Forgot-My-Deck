@@ -77,7 +77,7 @@ export function ViewUserDecks() {
             }
 
             const response = await fetch(
-                `wss://${WSS_URL}:3000/api/decks/get/${encodeURIComponent(token)}`
+                `wss://${WSS_URL}/api/decks/get/${encodeURIComponent(token)}`
             );
 
             let data = await response.json();

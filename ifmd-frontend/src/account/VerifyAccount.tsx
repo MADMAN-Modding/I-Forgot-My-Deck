@@ -19,7 +19,7 @@ function Verify() {
                 firstRun = true;
 
                 const response = await fetch(
-                    `wss://${WSS_URL}:3000/api/account/verify/${encodeURIComponent(code ?? "NO_CODE")}`
+                    `wss://${WSS_URL}/api/account/verify/${encodeURIComponent(code ?? "NO_CODE")}`
                 )
                 const data = await response.json();
 
