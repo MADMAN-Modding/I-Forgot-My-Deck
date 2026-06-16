@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { WSS_URL } from '../constants';
 
 function Verify() {
     const { code } = useParams();
@@ -18,7 +19,7 @@ function Verify() {
                 firstRun = true;
 
                 const response = await fetch(
-                    `https://127.0.0.1:3000/api/account/verify/${encodeURIComponent(code ?? "NO_CODE")}`
+                    `wss://${WSS_URL}:3000/api/account/verify/${encodeURIComponent(code ?? "NO_CODE")}`
                 )
                 const data = await response.json();
 

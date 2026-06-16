@@ -5,6 +5,7 @@ import type { Card, Deck } from "../types";
 import { processDeck } from "./BuildDeck";
 import { ViewDeck }  from "./ViewDeck";
 import Cookies from "js-cookie";
+import { WSS_URL } from "../constants";
 
 interface CardGetFormProps {
   deck: string;
@@ -70,7 +71,7 @@ function CreateDeck() {
 
     try {
       const response = await fetch(
-        `https://127.0.0.1:3000/api/decks/add/${encodeURIComponent(deck)}/${encodeURIComponent(name)}/${encodeURIComponent(token)}`
+        `wss://${WSS_URL}:3000/api/decks/add/${encodeURIComponent(deck)}/${encodeURIComponent(name)}/${encodeURIComponent(token)}`
       );
 
       if (response.ok) {
@@ -97,7 +98,7 @@ function CreateDeck() {
     setBuildingDone(false);
     for (const c of processedDeck.cards) {
       try {
-        const response = await fetch(`https://127.0.0.1:3000/api/card/name/${encodeURIComponent(c.name)}/${c.set_id}`);
+        const response = await fetch(`wss://${WSS_URL}:3000/api/card/name/${encodeURIComponent(c.name)}/${c.set_id}`);
 
         const data = await response.json();
 

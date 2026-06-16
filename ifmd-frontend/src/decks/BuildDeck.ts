@@ -1,4 +1,5 @@
 import { getToken } from '../account/AccountManagement';
+import { WSS_URL } from '../constants';
 import type { Deck, Card } from '../types';
 export function processDeck(fileData: string): Deck {
     var cardsCounted = 0;
@@ -55,7 +56,7 @@ export async function getDeckList(id: string) {
         }
 
         const response = await fetch(
-            `https://127.0.0.1:3000/api/deck_list/get/${encodeURIComponent(token)}/${encodeURIComponent(id)}`
+            `wss://${WSS_URL}/api/deck_list/get/${encodeURIComponent(token)}/${encodeURIComponent(id)}`
         );
 
         let data = await response.json();

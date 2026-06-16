@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getToken } from "../account/AccountManagement";
+import { WSS_URL } from "../constants";
 
 function Lobby() {
     const [lobbyId, setLobbyId] = useState("");
@@ -16,7 +17,7 @@ function Lobby() {
         const id = crypto.randomUUID();
         try {
             const res = await fetch(
-                `https://127.0.0.1:3000/api/lobby/create/${encodeURIComponent(id)}/${encodeURIComponent(token)}`
+                `wss://${WSS_URL}:3000/api/lobby/create/${encodeURIComponent(id)}/${encodeURIComponent(token)}`
             );
             if (!res.ok) {
                 const body = await res.json();

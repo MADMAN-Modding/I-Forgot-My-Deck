@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { WSS_URL } from '../constants';
 
 function CreateAccount() {
   const [form, setForm] = useState({
@@ -17,7 +18,7 @@ function CreateAccount() {
     e.preventDefault();
 
     try {
-      const response = await fetch(`https://127.0.0.1:3000/api/account/create/${encodeURIComponent(form.display_name)}/${form.username}/${form.email}/${form.password}`);
+      const response = await fetch(`wss://${WSS_URL}:3000/api/account/create/${encodeURIComponent(form.display_name)}/${form.username}/${form.email}/${form.password}`);
 
       const data = await response.json();
       console.log("Response:", data);

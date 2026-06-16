@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { Link } from "react-router-dom";
+import { WSS_URL } from "../constants";
 
 function Home() {
     const [displayName, setDisplayName] = useState(null);
@@ -75,7 +76,7 @@ function Home() {
             </div>
 
             <div className="bg-center text-3xl font-bold text-white text-center mt-5">
-                <h1>You forgot your deck, didn't you?</h1>
+                <h1>You forgot your deck, didn't you? {WSS_URL}</h1>
 
                 <h2 className="text-xl">
                     That's ok! Add your deck{" "}

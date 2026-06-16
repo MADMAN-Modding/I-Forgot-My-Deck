@@ -5,7 +5,7 @@ import { getDeckList } from "../decks/BuildDeck";
 import { playerDataJSON } from "./PlayerData";
 import { getToken } from "../account/AccountManagement";
 import { CardLightbox } from "./components/CardLightbox";
-import { WSS_URL } from "../../constants";
+import { WSS_URL } from "../constants";
 import { Link } from "react-router-dom";
 
 interface DragState {
@@ -131,7 +131,7 @@ export function Mat() {
             if (!token) return;
             try {
                 const res = await fetch(
-                    `https://127.0.0.1:3000/api/decks/get/${encodeURIComponent(token)}`
+                    `wss://${WSS_URL}:3000/api/decks/get/${encodeURIComponent(token)}`
                 );
                 if (res.ok) {
                     const data = await res.json();
@@ -151,7 +151,7 @@ export function Mat() {
             if (!token) return;
             try {
                 const res = await fetch(
-                    `https://127.0.0.1:3000/api/account/token/${encodeURIComponent(token)}`
+                    `wss://${WSS_URL}:3000/api/account/token/${encodeURIComponent(token)}`
                 );
                 if (res.ok) {
                     const data = await res.json();

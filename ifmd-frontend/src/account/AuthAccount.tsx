@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
+import { WSS_URL } from '../constants';
 
 function App() {
   const [form, setForm] = useState({
@@ -24,7 +25,7 @@ function App() {
     e.preventDefault();
 
     try {
-      const response = await fetch(`https://127.0.0.1:3000/api/account/auth/${form.username}/${form.password}`);
+      const response = await fetch(`wss://${WSS_URL}:3000/api/account/auth/${form.username}/${form.password}`);
 
       const data = await response.json();
       console.log("Response:", data);

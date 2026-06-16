@@ -4,6 +4,7 @@ import Cookies from "js-cookie";
 import { useParams } from "react-router-dom";
 import { getDeckList, sortCommanderFirst } from "./BuildDeck";
 import { Link } from "react-router-dom";
+import { WSS_URL } from "../constants";
 
 interface ViewDeckProps {
     deck: Deck | null;
@@ -76,7 +77,7 @@ export function ViewUserDecks() {
             }
 
             const response = await fetch(
-                `https://127.0.0.1:3000/api/decks/get/${encodeURIComponent(token)}`
+                `wss://${WSS_URL}:3000/api/decks/get/${encodeURIComponent(token)}`
             );
 
             let data = await response.json();

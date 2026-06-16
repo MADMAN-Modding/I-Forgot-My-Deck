@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import type { PlayerData, PlayedCard } from "../types";
 import { CardLightbox } from "./components/CardLightbox";
-import { WSS_URL } from "../../constants";
+import { WSS_URL } from "../constants";
 import { Link } from "react-router-dom";
 
 interface PlayerEntry {
