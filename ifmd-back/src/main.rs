@@ -50,7 +50,10 @@ async fn main() {
         .route("/api/deck_list/get/{token}/{id}", get(get_deck_list))
         .route("/api/decks/delete/{token}/{id}", get(delete_deck))
         .route("/ws/join/{lobby_id}/{client_type}", get(ws_handler))
-        .route("/ws/join/{lobby_id}/{client_type}/{token}", get(ws_handler_auth))
+        .route(
+            "/ws/join/{lobby_id}/{client_type}/{token}",
+            get(ws_handler_auth),
+        )
         .route("/ws/waiting/{lobby_id}/{token}", get(ws_waiting_handler))
         .route("/api/lobby/create/{lobby_id}/{token}", get(create_lobby))
         .layer(CorsLayer::permissive())
@@ -64,8 +67,15 @@ async fn main() {
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("Listening on {addr}");
 
-    axum_server::bind_rustls(addr, config)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    if cfg!(debug_assertions) {
+        axum_server::bind_rustls(addr, config)
+            .serve(app.into_make_service())
+            .await
+            .unwrap();
+    } else {
+        axum_server::bind(addr)
+            .serve(app.into_make_service())
+            .await
+            .unwrap();
+    }
 }
