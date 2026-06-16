@@ -74,6 +74,10 @@ pub fn get_data_dir() -> String {
     data_dir.to_string()
 } 
 
+pub fn get_card_storage_dir() -> String {
+    format!("{}/cache", get_data_dir())
+}
+
 pub fn get_db_path() -> String {
     format!("{}/database.sqlite", get_data_dir())
 }

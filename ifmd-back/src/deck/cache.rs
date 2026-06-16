@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
-use crate::{deck::card::Card, database, state::AppState};
+use crate::{constants::get_card_storage_dir, database, deck::card::Card, state::AppState};
 use reqwest::header::{ACCEPT, USER_AGENT};
 use tokio::fs as tfs;
 
@@ -11,7 +11,7 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
 
         let mut card = database::get_card_by_id(&state.database, &card_id).await;
 
-        card.url = build_path(&card.id).await?;
+        card.url = build_path(&card.id, true).await?;
 
         return Ok(card);
     }
@@ -30,7 +30,7 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
         .await?.json::<serde_json::Value>().await?;
 
     let card_id = res["id"].as_str().ok_or_else(|| anyhow::anyhow!("No id for card: {card_name}"))?;
-    let file_path = build_path(card_id).await?;
+    let file_path = build_path(card_id, false).await?;
     let card_display_name = res["name"].as_str();
     let card_img_download: &str;
 
@@ -53,53 +53,46 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
 
     } else {
         card_img_download = res["image_uris"]["normal"].as_str().ok_or_else(|| anyhow::anyhow!("No image for card: {card_name}"))?;
+        download_image(&card_img_download, &file_path, card_id).await?;
     }
 
-    let card = Card::new(card_name.to_string(), card_display_name.map(|s| s.to_string()), card_id.to_string(), file_path.clone(), Some(set.to_string()), false, is_two_faced);
-
-    download_image(&card_img_download, &file_path, card_id).await?;
+    let card = Card::new(card_name.to_string(), card_display_name.map(|s| s.to_string()), card_id.to_string(), build_path(&card_id, true).await?, Some(set.to_string()), false, is_two_faced);
 
     database::input_card(&state.database, &card).await?;
 
     Ok(card)
 }
 
-async fn download_image(img_url: &str, path: &str, id: &str) -> Result<(), anyhow::Error> {
+async fn download_image(img_url: &str, relative_path: &str, id: &str) -> Result<(), anyhow::Error> {
     if !check_card_downloaded(id).await {
-        // Download image bytes
         let img_bytes = reqwest::get(img_url).await?.bytes().await?;
-    
-        let dump_directory = if cfg!(debug_assertions) {
-            "../ifmd-frontend/public"
-        } else {
-            "../ifmd-frontend/dist/assets"
-        };
-        
-        let path = PathBuf::from(format!("{dump_directory}/{}", path));
+        let dump_directory = get_card_storage_dir();
+        let path = PathBuf::from(dump_directory).join(relative_path);
 
         tfs::create_dir_all(path.parent().unwrap()).await?;
-
         tfs::write(&path, &img_bytes).await?;
     }
     Ok(())
 }
 
 async fn check_card_downloaded(id: &str) -> bool {
-    let file_path = build_path(id).await.unwrap();
-    let path = PathBuf::from(&file_path);
+   let relative_path = build_path(id, false).await.unwrap();
+    let path = PathBuf::from(get_card_storage_dir()).join("cache/").join(relative_path);
     path.exists()
 }
 
-async fn build_path(id: &str) -> Result<String, anyhow::Error> {
+async fn build_path(id: &str, full: bool) -> Result<String, anyhow::Error> {
     // Create directory split for first 2 hex chars of the UUID
     let prefix:(&str, &str) = (&id[0..1], &id[1..2]);
 
-    let dir;
+    let mut path = format!("{}/{}/{}.png", prefix.0, prefix.1, id);
 
-    dir = format!("cache/{}/{}", prefix.0, prefix.1);
+    if full {
+        path = format!("images/cache/{path}")
+    }
 
-    let file_path = format!("{dir}/{id}.png");
-    Ok(file_path)
+    Ok(path)
+
 }
 
 // Not used

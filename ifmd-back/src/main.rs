@@ -63,7 +63,7 @@ async fn main() {
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("Listening on {addr}");
 
-    if cfg!(debug_assertions) {
+    if !cfg!(debug_assertions) {
         let config = RustlsConfig::from_pem_file("certs/crt.pem", "certs/priv_key.pem")
             .await
             .unwrap();
