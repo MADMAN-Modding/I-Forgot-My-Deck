@@ -72,7 +72,7 @@ async fn download_image(img_url: &str, path: &str, id: &str) -> Result<(), anyho
         let dump_directory = if cfg!(debug_assertions) {
             "../ifmd-frontend/public"
         } else {
-            "ifmd-backend/dist"
+            "ifmd-frontend/dist"
         };
         
         let path = PathBuf::from(format!("{dump_directory}/{}", path));
