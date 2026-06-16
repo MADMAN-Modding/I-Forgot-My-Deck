@@ -69,7 +69,13 @@ async fn download_image(img_url: &str, path: &str, id: &str) -> Result<(), anyho
         // Download image bytes
         let img_bytes = reqwest::get(img_url).await?.bytes().await?;
     
-        let path = PathBuf::from(format!("../ifmd-frontend/public/{}", path));
+        let dump_directory = if cfg!(debug_assertions) {
+            "../ifmd-frontend/public"
+        } else {
+            "ifmd-backend/dist"
+        };
+        
+        let path = PathBuf::from(format!("{dump_directory}/{}", path));
 
         tfs::create_dir_all(path.parent().unwrap()).await?;
 
