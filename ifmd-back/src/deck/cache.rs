@@ -72,7 +72,7 @@ async fn download_image(img_url: &str, path: &str, id: &str) -> Result<(), anyho
         let dump_directory = if cfg!(debug_assertions) {
             "../ifmd-frontend/public"
         } else {
-            "../ifmd-frontend/dist/assests"
+            "../ifmd-frontend/dist/assets"
         };
         
         let path = PathBuf::from(format!("{dump_directory}/{}", path));
@@ -94,14 +94,9 @@ async fn build_path(id: &str) -> Result<String, anyhow::Error> {
     // Create directory split for first 2 hex chars of the UUID
     let prefix:(&str, &str) = (&id[0..1], &id[1..2]);
 
-    let dir: String;
+    let dir;
 
-    if cfg!(debug_assertions) {
-        dir = format!("cache/{}/{}", prefix.0, prefix.1);
-    } else {
-        dir = format!("assets/cache/{}/{}", prefix.0, prefix.1);
-    }
-
+    dir = format!("cache/{}/{}", prefix.0, prefix.1);
 
     let file_path = format!("{dir}/{id}.png");
     Ok(file_path)
