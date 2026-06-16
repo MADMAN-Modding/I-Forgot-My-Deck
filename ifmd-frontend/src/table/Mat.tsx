@@ -296,7 +296,7 @@ export function Mat() {
 
         const token = getToken() ?? "anonymous";
         const bfEl = battlefieldRef.current;
-        const viewport = bfEl ? { width: bfEl.clientWidth, height: bfEl.clientHeight } : undefined;
+        const viewport = bfEl ?  { width: bfEl.clientWidth, height: bfEl.clientHeight } : {width: 100, height: 100};
         const playerData: PlayerData = {
             hand: { cards: currentHand },
             played_cards: currentBattlefield,
@@ -304,7 +304,7 @@ export function Mat() {
             commander_damage: currentCmdDmg,
             // Strip deck ID and owner — other clients should never receive them
             deck: { id: "", name: currentDeckName, cards: commanderNameRef.current, owner: displayNameRef.current },
-            viewport,
+            viewport
         };
 
         ws.send(JSON.stringify({

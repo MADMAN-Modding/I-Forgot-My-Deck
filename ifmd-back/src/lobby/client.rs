@@ -112,6 +112,23 @@ pub struct PlayerData {
     pub commander_damage: Vec<i32>,
     /// Data of the deck being used
     pub deck: UserDeck,
+    /** Viewport dimensions of the MAT's battlefield, used by master view for scaling */
+    pub viewport: ViewPort
+}
+
+#[tsync::tsync]
+pub struct ViewPort {
+    pub width: usize,
+    pub height: usize
+}
+
+impl ViewPort {
+    pub fn new() -> ViewPort{
+        ViewPort {
+            width: 0,
+            height: 0
+        }
+    }
 }
 
 impl PlayerData {
@@ -129,6 +146,7 @@ impl PlayerData {
             life,
             commander_damage,
             deck,
+            viewport: ViewPort::new()
         }
     }
 }
@@ -140,7 +158,8 @@ impl ClientData for PlayerData {
             played_cards: Vec::new(),
             life: 40,
             commander_damage: Vec::new(),
-            deck: UserDeck::default()
+            deck: UserDeck::default(),
+            viewport: ViewPort::new()
         }
     }
 }

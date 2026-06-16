@@ -83,7 +83,12 @@ export interface PlayerData {
   /** Data of the deck being used */
   deck: UserDeck;
   /** Viewport dimensions of the MAT's battlefield, used by master view for scaling */
-  viewport?: { width: number; height: number };
+  viewport: ViewPort;
+}
+
+export interface ViewPort {
+  width: number;
+  height: number;
 }
 
 export interface Hand {
