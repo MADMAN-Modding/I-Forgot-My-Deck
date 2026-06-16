@@ -131,7 +131,7 @@ export function Mat() {
             if (!token) return;
             try {
                 const res = await fetch(
-                    `wss://${WSS_URL}/api/decks/get/${encodeURIComponent(token)}`
+                    `https://${WSS_URL}/api/decks/get/${encodeURIComponent(token)}`
                 );
                 if (res.ok) {
                     const data = await res.json();
@@ -151,7 +151,7 @@ export function Mat() {
             if (!token) return;
             try {
                 const res = await fetch(
-                    `wss://${WSS_URL}/api/account/token/${encodeURIComponent(token)}`
+                    `https://${WSS_URL}/api/account/token/${encodeURIComponent(token)}`
                 );
                 if (res.ok) {
                     const data = await res.json();

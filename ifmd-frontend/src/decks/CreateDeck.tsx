@@ -71,7 +71,7 @@ function CreateDeck() {
 
     try {
       const response = await fetch(
-        `wss://${WSS_URL}/api/decks/add/${encodeURIComponent(deck)}/${encodeURIComponent(name)}/${encodeURIComponent(token)}`
+        `https://${WSS_URL}/api/decks/add/${encodeURIComponent(deck)}/${encodeURIComponent(name)}/${encodeURIComponent(token)}`
       );
 
       if (response.ok) {
@@ -98,7 +98,7 @@ function CreateDeck() {
     setBuildingDone(false);
     for (const c of processedDeck.cards) {
       try {
-        const response = await fetch(`wss://${WSS_URL}/api/card/name/${encodeURIComponent(c.name)}/${c.set_id}`);
+        const response = await fetch(`https://${WSS_URL}/api/card/name/${encodeURIComponent(c.name)}/${c.set_id}`);
 
         const data = await response.json();
 

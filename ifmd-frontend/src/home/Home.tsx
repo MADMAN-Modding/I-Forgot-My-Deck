@@ -18,7 +18,7 @@ function Home() {
 
         try {
             const response = await fetch(
-                `wss://${WSS_URL}/api/account/token/${token}`
+                `https://${WSS_URL}/api/account/token/${token}`
             );
 
             const data = await response.json();

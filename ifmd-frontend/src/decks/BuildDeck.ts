@@ -56,7 +56,7 @@ export async function getDeckList(id: string) {
         }
 
         const response = await fetch(
-            `wss://${WSS_URL}/api/deck_list/get/${encodeURIComponent(token)}/${encodeURIComponent(id)}`
+            `https://${WSS_URL}/api/deck_list/get/${encodeURIComponent(token)}/${encodeURIComponent(id)}`
         );
 
         let data = await response.json();

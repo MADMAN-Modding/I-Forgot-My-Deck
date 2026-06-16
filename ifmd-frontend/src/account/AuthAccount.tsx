@@ -25,7 +25,7 @@ function App() {
     e.preventDefault();
 
     try {
-      const response = await fetch(`wss://${WSS_URL}/api/account/auth/${form.username}/${form.password}`);
+      const response = await fetch(`https://${WSS_URL}/api/account/auth/${form.username}/${form.password}`);
 
       const data = await response.json();
       console.log("Response:", data);
