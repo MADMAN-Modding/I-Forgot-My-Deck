@@ -3,6 +3,7 @@ import type { Deck } from "../types";
 import Cookies from "js-cookie";
 import { useParams } from "react-router-dom";
 import { getDeckList, sortCommanderFirst } from "./BuildDeck";
+import { Link } from "react-router-dom";
 
 interface ViewDeckProps {
     deck: Deck | null;
@@ -93,7 +94,7 @@ export function ViewUserDecks() {
         getDecks();
     }, []);
 
-    const decks = deckIDs?.map((deck) => <a href={`/deck/view/${deck[0]}`} key={`${deck[0]}`}><p className="text-white bg-black rounded-2xl pl-3 pr-3 mb-2 hover:cursor-pointer" key={deck[0]}>{deck[1]}</p></a>)
+    const decks = deckIDs?.map((deck) => <Link to={`/deck/view/${deck[0]}`} key={`${deck[0]}`}><p className="text-white bg-black rounded-2xl pl-3 pr-3 mb-2 hover:cursor-pointer" key={deck[0]}>{deck[1]}</p></Link>)
 
     return (
         <>

@@ -6,6 +6,7 @@ import { playerDataJSON } from "./PlayerData";
 import { getToken } from "../account/AccountManagement";
 import { CardLightbox } from "./components/CardLightbox";
 import { WSS_URL } from "../../constants";
+import { Link } from "react-router-dom";
 
 interface DragState {
     cardIndex: number;
@@ -646,9 +647,9 @@ export function Mat() {
                     ) : userDecks.length === 0 ? (
                         <p>
                             No decks found.{" "}
-                            <a href="/deck/create" className="underline">
+                            <Link to="/deck/create" className="underline">
                                 Create one here
-                            </a>
+                            </Link>
                             .
                         </p>
                     ) : (
@@ -663,9 +664,9 @@ export function Mat() {
                         ))
                     )}
                 </div>
-                <a href="/lobby" className="text-[#aaa] underline mt-4 block">
+                <Link to="/lobby" className="text-[#aaa] underline mt-4 block">
                     ← Back to lobby
-                </a>
+                </Link>
             </div>
         );
     }
@@ -680,12 +681,12 @@ export function Mat() {
         >
             {/* ── Top bar: life & info ── */}
             <div className="flex items-center gap-3 bg-[#1a1a1a] px-4 py-2 flex-shrink-0 flex-wrap">
-                <a
-                    href="/lobby"
+                <Link
+                    to="/lobby"
                     className="bg-[#444] rounded-lg px-3 py-1 text-sm hover:bg-[#555] transition"
                 >
                     ← Lobby
-                </a>
+                </Link>
                 <span className="text-sm text-[#aaa]">
                     Lobby:{" "}
                     <button

@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import type { PlayerData, PlayedCard } from "../types";
 import { CardLightbox } from "./components/CardLightbox";
 import { WSS_URL } from "../../constants";
+import { Link } from "react-router-dom";
 
 interface PlayerEntry {
     clientId: string;
@@ -74,12 +75,12 @@ export function Table() {
                         ← All Players
                     </button>
                 ) : (
-                    <a
-                        href="/lobby"
+                    <Link
+                        to="/lobby"
                         className="bg-[#444] rounded-lg px-3 py-1 text-sm hover:bg-[#555] transition"
                     >
                         ← Lobby
-                    </a>
+                    </Link>
                 )}
                 <h1 className="text-2xl font-bold">
                     Table View — Lobby:{" "}

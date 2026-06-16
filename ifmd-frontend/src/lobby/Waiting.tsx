@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getToken } from "../account/AccountManagement";
-import { WSS_URL } from "../../constants"
+import { WSS_URL } from "../../constants";
+import { Link } from "react-router-dom";
 
 interface WaitingPlayer {
     name: string;
@@ -76,7 +77,7 @@ export default function Waiting() {
         return (
             <div className="text-white text-center mt-24">
                 <p className="text-xl">You must be logged in to join a game.</p>
-                <a href="/account/auth" className="text-[#ce11c2] underline mt-3 block">Sign in</a>
+                <Link to="/account/auth" className="text-[#ce11c2] underline mt-3 block">Sign in</Link>
             </div>
         );
     }

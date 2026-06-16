@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
+import { Link } from "react-router-dom";
 
 function Home() {
     const [displayName, setDisplayName] = useState(null);
@@ -43,20 +44,19 @@ function Home() {
     return (
         <>
             <div className="mt-4 flex flex-wrap bg-[#333333] text-white w-2/3 m-auto rounded-2xl *:hover:bg-(--main-color) *:transition *:duration-400 *:rounded-xl *:m-auto *:pl-1 *:pr-1">
-                <a href="/">Home</a>
-                <a href="#news">Updates</a>
-                <a
-                    href="https://github.com/MADMAN-Modding/I-Forgot-My-Deck"
+                <Link to="/">Home</Link>
+                <Link
+                    to="https://github.com/MADMAN-Modding/I-Forgot-My-Deck"
                     target="_blank"
                     rel="noreferrer"
                 >
                     GitHub
-                </a>
-                <a href="/deck/create">Create Deck</a>
+                </Link>
+                <Link to="/deck/create">Create Deck</Link>
 
-                <a href="/deck/view/user">View Decks</a>
+                <Link to="/deck/view/user">View Decks</Link>
 
-                <a href="/lobby">Join Game</a>
+                <Link to="/lobby">Join Game</Link>
 
                 {/* Auth area */}
                 <div>
@@ -66,9 +66,9 @@ function Home() {
                         </span>
                     ) : (
                         <>
-                            <a href="account/auth/">Login</a>
+                            <Link to="account/auth/">Login</Link>
                             &nbsp;&amp;&nbsp;
-                            <a href="account/create">Signup</a>
+                            <Link to="account/create">Signup</Link>
                         </>
                     )}
                 </div>
@@ -79,9 +79,9 @@ function Home() {
 
                 <h2 className="text-xl">
                     That's ok! Add your deck{" "}
-                    <a className="underline" href="deck/create">
+                    <Link className="underline" to="deck/create">
                         here
-                    </a>
+                    </Link>
                     !
                 </h2>
             </div>

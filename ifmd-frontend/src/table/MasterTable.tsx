@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import type { PlayerData, PlayedCard } from "../types";
 import { WSS_URL } from "../../constants";
+import { Link } from "react-router-dom";
 
 interface PlayerEntry {
     clientId: string;
@@ -194,12 +195,12 @@ export function MasterTable() {
         <div className="text-white bg-[#0a0a0a] flex flex-col" style={{ height: "100vh", overflow: "hidden" }}>
             {/* Header bar */}
             <div className="flex items-center gap-4 bg-[#111] px-4 flex-shrink-0 border-b border-[#222]" style={{ height: headerBarH }}>
-                <a
-                    href="/lobby"
+                <Link
+                    to="/lobby"
                     className="bg-[#333] rounded-lg px-3 py-1 text-sm hover:bg-[#444] transition"
                 >
                     ← Lobby
-                </a>
+                </Link>
                 <h1 className="text-base font-bold">
                     Master View — <span className="font-mono text-sm">{lobbyId}</span>
                 </h1>

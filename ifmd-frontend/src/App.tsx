@@ -1,5 +1,5 @@
 import {
-    BrowserRouter as Router,
+    HashRouter as Router,
     Routes,
     Route,
     Navigate,
@@ -21,58 +21,19 @@ function App() {
         <>
             <Router>
                 <Routes>
-                    <Route
-                        path="/"
-                        element={<Home/>}
-                    />
-                    <Route
-                        path="/verify/:code"
-                        element={<Verify/>}
-                    />
-                    <Route
-                        path="/account/create"
-                        element={<Create/>}
-                    />
-                    <Route
-                        path="/account/auth"
-                        element={<Auth/>}
-                    />
-                    <Route
-                        path="/deck/create"
-                        element={<CreateDeck/>}
-                    />
-                    <Route
-                        path="/deck/view/user"
-                        element={<ViewUserDecks/>}
-                    />
-                    <Route
-                        path="/deck/view/:id"
-                        element={<ViewDeckFromID/>}
-                    />
-                    <Route
-                        path="/lobby"
-                        element={<Lobby/>}
-                    />
-                    <Route
-                        path="/waiting/:lobbyId"
-                        element={<Waiting/>}
-                    />
-                    <Route
-                        path="/mat/:lobbyId"
-                        element={<Mat/>}
-                    />
-                    <Route
-                        path="/table/:lobbyId"
-                        element={<Table/>}
-                    />
-                    <Route
-                        path="/master/:lobbyId"
-                        element={<MasterTable/>}
-                    />
-                    <Route
-                        path="*"
-                        element={<Navigate to="/"/>}
-                    />
+                    <Route path="/" element={<Home/>} />
+                    <Route path="/verify/:code" element={<Verify/>} />
+                    <Route path="/account/create" element={<Create/>} />
+                    <Route path="/account/auth" element={<Auth/>} />
+                    <Route path="/deck/create" element={<CreateDeck/>} />
+                    <Route path="/deck/view/user" element={<ViewUserDecks/>} />
+                    <Route path="/deck/view/:id" element={<ViewDeckFromID/>} />
+                    <Route path="/lobby" element={<Lobby/>} />
+                    <Route path="/waiting/:lobbyId" element={<Waiting/>} />
+                    <Route path="/mat/:lobbyId" element={<Mat/>} />
+                    <Route path="/table/:lobbyId" element={<Table/>} />
+                    <Route path="/master/:lobbyId" element={<MasterTable/>} />
+                    <Route path="*" element={<Navigate to="/"/>} />
                 </Routes>
             </Router>
         </>

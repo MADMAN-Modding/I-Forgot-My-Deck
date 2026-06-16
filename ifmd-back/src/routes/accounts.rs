@@ -80,7 +80,7 @@ pub async fn make_account(
 
     // Message to be emailed
     let message = format!(
-        "<h1>Hello, {display_name}!</h1>\n<p>I hope you enjoy I Forgot My Deck!</p>\n<a href='http://localhost:5173/verify/{code}'>Verify your account here</a>"
+        "<h1>Hello, {display_name}!</h1>\n<p>I hope you enjoy I Forgot My Deck!</p>\n<a href='http://ifmd.madtechs.dev/verify/{code}'>Verify your account here</a>"
     );
 
     // Send email
