@@ -18,7 +18,7 @@ function Home() {
 
         try {
             const response = await fetch(
-                `https://127.0.0.1:3000/api/account/token/${token}`
+                `wss://${WSS_URL}/api/account/token/${token}`
             );
 
             const data = await response.json();
@@ -76,7 +76,7 @@ function Home() {
             </div>
 
             <div className="bg-center text-3xl font-bold text-white text-center mt-5">
-                <h1>You forgot your deck, didn't you? {WSS_URL}</h1>
+                <h1>You forgot your deck, didn't you?</h1>
 
                 <h2 className="text-xl">
                     That's ok! Add your deck{" "}
