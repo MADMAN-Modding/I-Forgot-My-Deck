@@ -11,7 +11,7 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
 
         let mut card = database::get_card_by_id(&state.database, &card_id).await;
 
-        card.url = build_path(&card.id, true, false).await;
+        card.url = build_path(&card.id, true, true).await;
 
         return Ok(card);
     }
@@ -30,7 +30,7 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
         .await?.json::<serde_json::Value>().await?;
 
     let card_id = res["id"].as_str().ok_or_else(|| anyhow::anyhow!("No id for card: {card_name}"))?;
-    let file_path = build_path(card_id, false, false).await;
+    let file_path = build_path(card_id, false, true).await;
     let card_display_name = res["name"].as_str();
     let card_img_download: &str;
 
@@ -56,7 +56,7 @@ pub async fn get_or_fetch_card_by_exact_name(card_name: &str, set: &str, state: 
         download_image(&card_img_download, &file_path, card_id).await?;
     }
 
-    let card = Card::new(card_name.to_string(), card_display_name.map(|s| s.to_string()), card_id.to_string(), build_path(&card_id, true, false).await, Some(set.to_string()), false, is_two_faced);
+    let card = Card::new(card_name.to_string(), card_display_name.map(|s| s.to_string()), card_id.to_string(), build_path(&card_id, true, true).await, Some(set.to_string()), false, is_two_faced);
 
     database::input_card(&state.database, &card).await?;
 
@@ -76,7 +76,7 @@ async fn download_image(img_url: &str, relative_path: &str, id: &str) -> Result<
 }
 
 async fn check_card_downloaded(id: &str) -> bool {
-   let relative_path = build_path(id, false, false).await;
+   let relative_path = build_path(id, false, true).await;
     let path = PathBuf::from(get_card_storage_dir()).join("cache/").join(relative_path);
     path.exists()
 }
