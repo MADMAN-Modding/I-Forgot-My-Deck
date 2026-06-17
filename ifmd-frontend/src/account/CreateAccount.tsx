@@ -21,7 +21,6 @@ function CreateAccount() {
       const response = await fetch(`https://${WSS_URL}/api/account/create/${encodeURIComponent(form.display_name)}/${form.username}/${form.email}/${form.password}`);
 
       const data = await response.json();
-      console.log("Response:", data);
 
       if (response.ok) {
         alert("Registration Complete!\nPlease check your email for verification.");

@@ -62,7 +62,6 @@ export async function getDeckList(id: string) {
         let data = await response.json();
 
         if (response.ok) {
-            console.log("Data" + data);
             return data;
         }
     } catch (err) {
@@ -75,14 +74,10 @@ export function sortCommanderFirst(deck: Deck): Deck {
         cards: []
     } as Deck
 
-    console.log("Sorting...." + deck.cards.length);
-
     for (const card of deck.cards) {
         if (card.is_commander) {
-            console.log("commander");
             newDeck.cards.unshift(card);
         } else {
-            console.log("not commander");
             newDeck.cards.push(card)
         }
     }

@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import { getDeckList, sortCommanderFirst } from "./BuildDeck";
 import { Link } from "react-router-dom";
 import { WSS_URL } from "../constants";
+import { useCardImages } from "../hooks/useCardImages";
 
 interface ViewDeckProps {
     deck: Deck | null;
@@ -21,11 +22,9 @@ export function ViewDeck({ deck }: ViewDeckProps) {
         return <p className="text-white text-center mt-5 bg-[#333333] w-fit m-auto p-2 rounded-2xl">No deck loaded yet</p>;
     }
 
-    console.log("PreOrdered: " + deck.cards.length);
-
     deck = sortCommanderFirst(deck);
 
-    console.log("Ordered: " + deck.cards.length);
+    const cardImages = useCardImages(deck?.cards.map(c => c.id) ?? []);
 
     return (
         <div className="*:text-white bg-[rgb(51,51,51)] rounded-4xl w-7/8 m-auto mt-5 grid grid-cols-3 *:text-sm">
@@ -39,7 +38,7 @@ export function ViewDeck({ deck }: ViewDeckProps) {
                             </h4>
                             <img
                                 className="w-75 rounded-2xl"
-                                src={location + deck?.cards[0].url}
+                                src={cardImages[deck?.cards[0].id]}
                                 alt={"Image of: " + (deck?.cards[0].display_name ?? deck?.cards[0].name)}
                             />
                         </div>
@@ -50,11 +49,11 @@ export function ViewDeck({ deck }: ViewDeckProps) {
                             <div key={card.id} className="card bg-[#333333] p-2 rounded-xl flex flex-col items-center">
                                 <img
                                     className="w-full rounded-lg mb-1"
-                                    src={location + card.url}
+                                    src={cardImages[card.id]}
                                     alt={"Image of: " + (card.display_name ?? card.name)}
                                 />
                                 <h4 className="text-center text-xs">
-                                    <b>{card.card_amount > 1 ? `${card.card_amount}× ` : ""}{card.display_name ?? card.name}</b>
+                                    <b>{`${card.card_amount}x `}{card.display_name ?? card.name}</b>
                                 </h4>
                             </div>
                         ))}
@@ -117,9 +116,7 @@ export function ViewDeckFromID() {
     if (id == null) return;
 
     useEffect(() => {
-        getDeckList(id).then((deck) => {console.log(deck); setDeck(deck)});
-
-        console.log(deck);
+        getDeckList(id).then((deck) => setDeck(deck));
     }, [])
 
     return (<>

@@ -1,9 +1,10 @@
-use crate::{database, state::AppState};
+use crate::{constants::get_data_dir, database, deck::cache, state::AppState};
 use axum::{
     Json, extract::{Path, State}, http::StatusCode
 };
-use tokio::sync::oneshot;
+use tokio::{fs, sync::oneshot};
 use std::sync::Arc;
+use base64::{engine::general_purpose::STANDARD, Engine as _};
     
 pub async fn get_card_by_exact_name(
     Path((card_name, card_set)): Path<(String, String)>,
@@ -56,4 +57,22 @@ pub async fn get_card_by_exact_name(
             return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(format!("Error receiving from queue: {}", e))));
         }
     }
+}
+
+pub async fn get_card_image(
+    Path((id, front)): Path<(String, bool)>,
+    State(_): State<Arc<AppState>>,
+) -> Result<(StatusCode, String), (StatusCode, String)> {
+    println!("Front: {front}");
+
+    let path = format!("{}/{}", get_data_dir(), cache::build_path(&id, true, front).await);
+
+    let read = match fs::read(path).await {
+        Ok(v) => v,
+        Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, "Error Locating Card".to_string()))
+    }; 
+
+    let encoded_image = STANDARD.encode(read);
+
+    Ok((StatusCode::OK, encoded_image))
 }

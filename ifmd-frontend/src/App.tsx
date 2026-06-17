@@ -2,7 +2,6 @@ import {
     HashRouter as Router,
     Routes,
     Route,
-    Navigate,
 } from "react-router-dom";
 import Home from "./home/Home.tsx";
 import Verify from "./account/VerifyAccount.tsx";
@@ -33,7 +32,6 @@ function App() {
                     <Route path="/mat/:lobbyId" element={<Mat/>} />
                     <Route path="/table/:lobbyId" element={<Table/>} />
                     <Route path="/master/:lobbyId" element={<MasterTable/>} />
-                    <Route path="*" element={<Navigate to="/"/>} />
                 </Routes>
             </Router>
         </>

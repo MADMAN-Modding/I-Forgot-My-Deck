@@ -28,7 +28,6 @@ function App() {
       const response = await fetch(`https://${WSS_URL}/api/account/auth/${form.username}/${form.password}`);
 
       const data = await response.json();
-      console.log("Response:", data);
 
       // If the account was authenticated set the message to auth and redirect to the root page
       if (response.ok) {

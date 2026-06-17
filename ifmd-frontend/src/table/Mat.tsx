@@ -51,12 +51,13 @@ function shuffleArray<T>(arr: T[]): T[] {
 }
 
 function cardImageUrl(card: Card, showFront = true): string {
-    if (!card.url) return "";
+    if (!card.id) return "";
     const base = card.url.startsWith("http") ? card.url : `/${card.url}`;
     if (!showFront && card.is_two_faced) {
         return base.replace(".png", "_back.png");
+    } else {
+        return cardImageUrl(card, false)
     }
-    return base;
 }
 
 export function Mat() {
@@ -228,8 +229,6 @@ export function Mat() {
 
             const token = getToken() ?? "";
             const ws = new WebSocket(`wss://${WSS_URL}/ws/join/${lobbyId}/MAT/${encodeURIComponent(token)}`);
-            ws.onopen = () => console.log("Connected to lobby", lobbyId);
-            ws.onclose = () => console.log("Disconnected from lobby");
             ws.onmessage = (evt) => {
                 if (evt.data === "MAT") return;
                 try {

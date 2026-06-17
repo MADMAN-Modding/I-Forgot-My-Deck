@@ -26,7 +26,6 @@ export function Table() {
         const ws = new WebSocket(`wss://${WSS_URL}/ws/join/${lobbyId}/TABLE`);
 
         ws.onopen = () => {
-            console.log("TABLE connected to lobby", lobbyId);
             setConnected(true);
             // Ask all MAT clients to immediately re-send their state
             ws.send(JSON.stringify({ type: "table_joined" }));
@@ -50,7 +49,6 @@ export function Table() {
         };
 
         ws.onclose = () => {
-            console.log("TABLE disconnected");
             setConnected(false);
         };
 

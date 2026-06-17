@@ -4,7 +4,7 @@ use ifmd_back::{
     constants, database,
     routes::{
         accounts::{auth_account, make_account, token_auth, verify_account},
-        cards::get_card_by_exact_name,
+        cards::{get_card_by_exact_name, get_card_image},
         decks::{add_deck, delete_deck, get_deck_list, get_user_decks},
         lobby::{create_lobby, ws_handler, ws_handler_auth, ws_waiting_handler},
     },
@@ -56,6 +56,7 @@ async fn main() {
         )
         .route("/ws/waiting/{lobby_id}/{token}", get(ws_waiting_handler))
         .route("/api/lobby/create/{lobby_id}/{token}", get(create_lobby))
+        .route("/api/card/img/{id}/{front}", get(get_card_image))
         .layer(CorsLayer::permissive())
         .with_state(app_state.clone());
 
@@ -63,7 +64,7 @@ async fn main() {
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("Listening on {addr}");
 
-    if !cfg!(debug_assertions) {
+    if cfg!(debug_assertions) {
         let config = RustlsConfig::from_pem_file("certs/crt.pem", "certs/priv_key.pem")
             .await
             .unwrap();
