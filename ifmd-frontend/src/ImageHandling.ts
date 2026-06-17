@@ -7,8 +7,6 @@ export async function getCardImage(id: string, front=true): Promise<string> {
 
         if (response.ok)
         base64 = await response.text()
-
-        console.log(response)
     } catch (err) {
         console.error(err);
     }

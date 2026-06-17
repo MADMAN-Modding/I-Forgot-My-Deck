@@ -125,7 +125,7 @@ async fn handle_waiting_socket(stream: WebSocket, state: Arc<AppState>, lobby_id
     let mut rx = waiting_tx.subscribe();
     let (mut sender, mut receiver) = stream.split();
 
-    // Send personalised welcome so the client knows if it is the creator
+    // Send personalized welcome so the client knows if it is the creator
     let welcome = json!({"type": "welcome", "is_creator": is_creator}).to_string();
     if sender.send(Message::Text(welcome.into())).await.is_err() {
         return;
