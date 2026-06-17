@@ -63,8 +63,6 @@ pub async fn get_card_image(
     Path((id, front)): Path<(String, bool)>,
     State(_): State<Arc<AppState>>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
-    println!("Front: {front}");
-
     let path = format!("{}/{}", get_data_dir(), cache::build_path(&id, true, front).await);
 
     let read = match fs::read(path).await {

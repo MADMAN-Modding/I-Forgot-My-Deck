@@ -1,19 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import type { PlayerData, PlayedCard } from "../types";
+import type { PlayerData, PlayedCard, Card } from "../types";
 import { CardLightbox } from "./components/CardLightbox";
 import { WSS_URL } from "../constants";
 import { Link } from "react-router-dom";
+import { getCardImage } from "../ImageHandling";
 
 interface PlayerEntry {
     clientId: string;
     data: PlayerData;
 }
 
-function cardImageUrl(url: string): string {
-    if (!url) return "";
-    return url.startsWith("http") ? url : `/${url}`;
-}
 
 export function Table() {
     const { lobbyId } = useParams<{ lobbyId: string }>();
@@ -85,9 +82,8 @@ export function Table() {
                     <span className="font-mono">{lobbyId}</span>
                 </h1>
                 <span
-                    className={`ml-auto text-sm px-2 py-1 rounded ${
-                        connected ? "bg-green-800 text-green-200" : "bg-red-900 text-red-200"
-                    }`}
+                    className={`ml-auto text-sm px-2 py-1 rounded ${connected ? "bg-green-800 text-green-200" : "bg-red-900 text-red-200"
+                        }`}
                 >
                     {connected ? "Connected" : "Disconnected"}
                 </span>
@@ -174,6 +170,29 @@ function PlayerCard({ clientId: _clientId, data, onClick }: PlayerCardProps) {
 function BoardDetail({ clientId: _clientId, data }: { clientId: string; data: PlayerData }) {
     const commanderName = data.deck?.cards;
     const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
+
+    // Image cache
+    const [imageCache, setImageCache] = useState<Record<string, string>>({});
+    const imageCacheRef = useRef<Record<string, string>>({});
+    function cardImageUrl(card: Card, showFront = true): string {
+        const key = `${card.id}_${showFront}`;
+        if (!(key in imageCache)) {
+            prefetchImage(card.id, showFront);
+            return ""; // placeholder on first render
+        }
+        return imageCache[key];
+    }
+
+    function prefetchImage(id: string, front = true) {
+        const key = `${id}_${front}`;
+        if (key in imageCacheRef.current) return; // already fetching or done
+        imageCacheRef.current[key] = ""; // mark as in-flight
+        getCardImage(id, front).then((url) => {
+            imageCacheRef.current[key] = url;
+            setImageCache((prev) => ({ ...prev, [key]: url }));
+        });
+    }
+    
     return (
         <div>
             {/* Header */}
@@ -218,12 +237,12 @@ function BoardDetail({ clientId: _clientId, data }: { clientId: string; data: Pl
                             }}
                             title={pc.card.display_name ?? pc.card.name}
                             onDoubleClick={() => setLightbox({
-                                src: cardImageUrl(pc.card.url),
+                                src: cardImageUrl(pc.card),
                                 alt: pc.card.display_name ?? pc.card.name,
                             })}
                         >
                             <img
-                                src={cardImageUrl(pc.card.url)}
+                                src={cardImageUrl(pc.card)}
                                 alt={pc.card.display_name ?? pc.card.name}
                                 className="h-36 hover:h-[30rem] transition-[height] duration-200 ease-out rounded-xl shadow-lg relative"
                             />

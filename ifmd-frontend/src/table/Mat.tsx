@@ -7,6 +7,7 @@ import { getToken } from "../account/AccountManagement";
 import { CardLightbox } from "./components/CardLightbox";
 import { WSS_URL } from "../constants";
 import { Link } from "react-router-dom";
+import { getCardImage } from "../ImageHandling";
 
 interface DragState {
     cardIndex: number;
@@ -50,15 +51,7 @@ function shuffleArray<T>(arr: T[]): T[] {
     return shuffled;
 }
 
-function cardImageUrl(card: Card, showFront = true): string {
-    if (!card.id) return "";
-    const base = card.url.startsWith("http") ? card.url : `/${card.url}`;
-    if (!showFront && card.is_two_faced) {
-        return base.replace(".png", "_back.png");
-    } else {
-        return cardImageUrl(card, false)
-    }
-}
+
 
 export function Mat() {
     const { lobbyId } = useParams<{ lobbyId: string }>();
@@ -117,6 +110,10 @@ export function Mat() {
     const displayNameRef = useRef<string>("");
     const deckNameRef = useRef<string>("");
 
+    // Image cache
+    const [imageCache, setImageCache] = useState<Record<string, string>>({});
+    const imageCacheRef = useRef<Record<string, string>>({});
+
     useEffect(() => { handRef.current = hand; }, [hand]);
     useEffect(() => { lifeRef.current = life; }, [life]);
     useEffect(() => { cmdDmgRef.current = commanderDamage; }, [commanderDamage]);
@@ -172,6 +169,25 @@ export function Mat() {
             if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
         };
     }, []);
+
+    function cardImageUrl(card: Card, showFront = true): string {
+        const key = `${card.id}_${showFront}`;
+        if (!(key in imageCache)) {
+            prefetchImage(card.id, showFront);
+            return ""; // placeholder on first render
+        }
+        return imageCache[key];
+    }
+
+    function prefetchImage(id: string, front = true) {
+        const key = `${id}_${front}`;
+        if (key in imageCacheRef.current) return; // already fetching or done
+        imageCacheRef.current[key] = ""; // mark as in-flight
+        getCardImage(id, front).then((url) => {
+            imageCacheRef.current[key] = url;
+            setImageCache((prev) => ({ ...prev, [key]: url }));
+        });
+    }
 
     async function startGame(selectedId: string, selectedName: string) {
         setLoading(true);
@@ -296,7 +312,7 @@ export function Mat() {
 
         const token = getToken() ?? "anonymous";
         const bfEl = battlefieldRef.current;
-        const viewport = bfEl ?  { width: bfEl.clientWidth, height: bfEl.clientHeight } : {width: 100, height: 100};
+        const viewport = bfEl ? { width: bfEl.clientWidth, height: bfEl.clientHeight } : { width: 100, height: 100 };
         const playerData: PlayerData = {
             hand: { cards: currentHand },
             played_cards: currentBattlefield,
@@ -1279,16 +1295,16 @@ function TableModalContent({ players, selfId }: { players: Record<string, Player
             className="grid gap-3"
             style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}
         >
-        {Object.entries(players)
-            .filter(([clientId]) => clientId !== selfId)
-            .map(([clientId, data]) => (
-                <PlayerSummaryCard
-                    key={clientId}
-                    clientId={clientId}
-                    data={data}
-                    onClick={() => setSelected(clientId)}
-                />
-            ))}
+            {Object.entries(players)
+                .filter(([clientId]) => clientId !== selfId)
+                .map(([clientId, data]) => (
+                    <PlayerSummaryCard
+                        key={clientId}
+                        clientId={clientId}
+                        data={data}
+                        onClick={() => setSelected(clientId)}
+                    />
+                ))}
         </div>
     );
 }

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import type { PlayerData, PlayedCard } from "../types";
+import type { PlayerData, PlayedCard, Card } from "../types";
 import { WSS_URL } from "../constants";
 import { Link } from "react-router-dom";
+import { getCardImage } from "../ImageHandling";
 
 interface PlayerEntry {
     clientId: string;
@@ -21,13 +22,6 @@ function computeGrid(n: number): [number, number] {
     if (n <= 4) return [2, 2];
     if (n <= 6) return [3, 2];
     return [4, 2];
-}
-
-function cardImageUrl(url: string, showFront = true, isTwoFaced = false): string {
-    if (!url) return "";
-    const base = url.startsWith("http") ? url : `/${url}`;
-    if (!showFront && isTwoFaced) return base.replace(".png", "_back.png");
-    return base;
 }
 
 interface PlayerBoardProps {
@@ -51,6 +45,28 @@ function PlayerBoard({ entry, cellWidth, cellHeight }: PlayerBoardProps) {
     const scaledCardH = Math.max(24, CARD_HEIGHT_PX * scale);
     // card aspect ratio ~63:88; width ≈ height * 0.716
     const scaledCardW = scaledCardH * 0.716;
+
+    // Image cache
+    const [imageCache, setImageCache] = useState<Record<string, string>>({});
+    const imageCacheRef = useRef<Record<string, string>>({});
+    function cardImageUrl(card: Card, showFront = true): string {
+        const key = `${card.id}_${showFront}`;
+        if (!(key in imageCache)) {
+            prefetchImage(card.id, showFront);
+            return ""; // placeholder on first render
+        }
+        return imageCache[key];
+    }
+
+    function prefetchImage(id: string, front = true) {
+        const key = `${id}_${front}`;
+        if (key in imageCacheRef.current) return; // already fetching or done
+        imageCacheRef.current[key] = ""; // mark as in-flight
+        getCardImage(id, front).then((url) => {
+            imageCacheRef.current[key] = url;
+            setImageCache((prev) => ({ ...prev, [key]: url }));
+        });
+    }
 
     return (
         <div
@@ -100,7 +116,7 @@ function PlayerBoard({ entry, cellWidth, cellHeight }: PlayerBoardProps) {
                             title={pc.card.display_name ?? pc.card.name}
                         >
                             <img
-                                src={cardImageUrl(pc.card.url, pc.show_front, pc.card.is_two_faced)}
+                                src={cardImageUrl(pc.card, pc.show_front)}
                                 alt={pc.card.display_name ?? pc.card.name}
                                 style={{ width: scaledCardW, height: scaledCardH, borderRadius: scaledCardH * 0.07 }}
                                 className="object-cover shadow"
