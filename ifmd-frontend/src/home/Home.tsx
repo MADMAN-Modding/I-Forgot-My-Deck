@@ -53,26 +53,41 @@ function Home() {
                 >
                     GitHub
                 </Link>
-                <Link to="/deck/create">Create Deck</Link>
 
-                <Link to="/deck/view/user">View Decks</Link>
 
-                <Link to="/lobby">Join Game</Link>
+                {checkedAuth && displayName ? (
+                    <>
+                        <Link to="/deck/create">Create Deck</Link>
+
+                        <Link to="/deck/view/user">View Decks</Link>
+
+                        <Link to="/lobby">Join Game</Link>
+                    </>
+                ) : (
+                    <>
+
+                    </>
+                )}
+
 
                 {/* Auth area */}
-                <div>
+                <>
                     {checkedAuth && displayName ? (
+                        <>
                         <span className="cursor-default">
                             {displayName}
                         </span>
+
+                        <button className="pl-1" onClick={() => {Cookies.remove("token"); window.location.reload()}}>Logout</button>
+                        </>
                     ) : (
-                        <>
+                        <div>
                             <Link to="account/auth/">Login</Link>
                             &nbsp;&amp;&nbsp;
                             <Link to="account/create">Signup</Link>
-                        </>
+                        </div>
                     )}
-                </div>
+                </>
             </div>
 
             <div className="bg-center text-3xl font-bold text-white text-center mt-5">
