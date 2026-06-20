@@ -32,8 +32,12 @@ function App() {
       // If the account was authenticated set the message to auth and redirect to the root page
       if (response.ok) {
         setMessage("auth")
-
-        Cookies.set('token', data["token"])
+        
+        const token = data["token"];
+        
+        // Set token expiration time to 7 days 
+        Cookies.set('token', token, {expires: 7, secure: true});
+        
 
         setTimeout(() => {navigate("/")}, 3000)
       } else {
