@@ -6,6 +6,7 @@ import { getDeckList, sortCommanderFirst } from "./BuildDeck";
 import { Link } from "react-router-dom";
 import { WSS_URL } from "../constants";
 import { useCardImages } from "../hooks/useCardImages";
+import NavBar from "../home/NavBar";
 
 interface ViewDeckProps {
     deck: Deck | null;
@@ -27,40 +28,44 @@ export function ViewDeck({ deck }: ViewDeckProps) {
     const cardImages = useCardImages(deck?.cards.map(c => c.id) ?? []);
 
     return (
-        <div className="*:text-white bg-[rgb(51,51,51)] rounded-4xl w-7/8 m-auto mt-5 grid grid-cols-3 *:text-sm">
-            {deck && deck.cards.length > 0 && (
-                <>
-                    {/* First card in its own row centered */}
-                    <div className="card text-center ml-auto mr-auto mt-5" key={deck?.cards[0].id}>
-                        <div className="bg-black p-3 rounded-2xl">
-                            <h4>
-                                <b>{deck?.cards[0].display_name ?? deck?.cards[0].name}</b>
-                            </h4>
-                            <img
-                                className="w-75 rounded-2xl"
-                                src={cardImages[deck?.cards[0].id]}
-                                alt={"Image of: " + (deck?.cards[0].display_name ?? deck?.cards[0].name)}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="cards-grid grid grid-cols-5 gap-4 bg-black m-4 rounded-xl p-2 col-span-2">
-                        {deck?.cards.slice(1).map(card => (
-                            <div key={card.id} className="card bg-[#333333] p-2 rounded-xl flex flex-col items-center">
-                                <img
-                                    className="w-full rounded-lg mb-1"
-                                    src={cardImages[card.id]}
-                                    alt={"Image of: " + (card.display_name ?? card.name)}
-                                />
-                                <h4 className="text-center text-xs">
-                                    <b>{`${card.card_amount}x `}{card.display_name ?? card.name}</b>
+        <>
+            <NavBar />
+            <div className="*:text-white bg-[rgb(51,51,51)] rounded-4xl w-7/8 m-auto mt-5 grid grid-cols-3 *:text-sm">
+                {deck && deck.cards.length > 0 && (
+                    <>
+                        {/* First card in its own row centered */}
+                        <div className="card text-center ml-auto mr-auto mt-5" key={deck?.cards[0].id}>
+                            <div className="bg-black p-3 rounded-2xl">
+                                <h4>
+                                    <b>{deck?.cards[0].display_name ?? deck?.cards[0].name}</b>
                                 </h4>
+                                <img
+                                    className="w-75 rounded-2xl"
+                                    src={cardImages[deck?.cards[0].id]}
+                                    alt={"Image of: " + (deck?.cards[0].display_name ?? deck?.cards[0].name)}
+                                />
                             </div>
-                        ))}
-                    </div>
-                </>
-            )}
-        </div>)
+                        </div>
+
+                        <div className="cards-grid grid grid-cols-5 gap-4 bg-black m-4 rounded-xl p-2 col-span-2">
+                            {deck?.cards.slice(1).map(card => (
+                                <div key={card.id} className="card bg-[#333333] p-2 rounded-xl flex flex-col items-center">
+                                    <img
+                                        className="w-full rounded-lg mb-1"
+                                        src={cardImages[card.id]}
+                                        alt={"Image of: " + (card.display_name ?? card.name)}
+                                    />
+                                    <h4 className="text-center text-xs">
+                                        <b>{`${card.card_amount}x `}{card.display_name ?? card.name}</b>
+                                    </h4>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                )}
+            </div>
+        </>
+    )
 }
 
 export function ViewUserDecks() {

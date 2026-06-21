@@ -15,6 +15,10 @@ pub async fn add_deck(
     Path((deck, name, token)): Path<(String, String, String)>,
     State(state): State<Arc<AppState>>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
+    if name.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "Deck must have a name.".to_string()))
+    }
+
     let owner = accounts::get_owner_from_token(&state.database, token).await?;
 
     let deck = deck.replace("\"", "");

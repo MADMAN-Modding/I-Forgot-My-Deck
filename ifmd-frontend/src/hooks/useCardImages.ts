@@ -5,6 +5,12 @@ export function useCardImages(ids: string[]) {
     const [images, setImages] = useState<Record<string, string>>({});
 
     useEffect(() => {
+        ids.forEach(id => {
+            if (images[id] == null) {
+                setImages(prev => ({ ...prev, [id]: "CardBack.png"}))
+            }
+        });
+
         if (!ids.length) return;
         ids.forEach(id => {
             getCardImage(id).then(url => {

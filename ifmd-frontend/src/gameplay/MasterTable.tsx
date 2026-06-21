@@ -52,11 +52,14 @@ function PlayerBoard({ entry, cellWidth, cellHeight }: PlayerBoardProps) {
     function cardImageUrl(card: Card, showFront = true): string {
         const key = `${card.id}_${showFront}`;
         if (!(key in imageCache)) {
-            prefetchImage(card.id, showFront);
-            return ""; // placeholder on first render
+            if (card.is_two_faced || showFront) {
+                prefetchImage(card.id, showFront);
+            }
+            return "CardBack.png"; // placeholder on first render
         }
         return imageCache[key];
     }
+
 
     function prefetchImage(id: string, front = true) {
         const key = `${id}_${front}`;
@@ -221,9 +224,8 @@ export function MasterTable() {
                     Master View — <span className="font-mono text-sm">{lobbyId}</span>
                 </h1>
                 <span
-                    className={`ml-auto text-xs px-2 py-1 rounded ${
-                        connected ? "bg-green-800 text-green-200" : "bg-red-900 text-red-200"
-                    }`}
+                    className={`ml-auto text-xs px-2 py-1 rounded ${connected ? "bg-green-800 text-green-200" : "bg-red-900 text-red-200"
+                        }`}
                 >
                     {connected ? "Live" : "Disconnected"}
                 </span>

@@ -9,13 +9,16 @@ import Create from "./account/CreateAccount.tsx";
 import Auth from "./account/AuthAccount.tsx";
 import CreateDeck from "./decks/CreateDeck.tsx";
 import { ViewUserDecks, ViewDeckFromID } from "./decks/ViewDeck.tsx";
-import { Mat } from "./table/Mat.tsx";
-import { Table } from "./table/Table.tsx";
-import { MasterTable } from "./table/MasterTable.tsx";
+import { Mat } from "./gameplay/mat/Mat.tsx";
+import { Table } from "./gameplay/Table.tsx";
+import { MasterTable } from "./gameplay/MasterTable.tsx";
 import Lobby from "./lobby/Lobby.tsx";
 import Waiting from "./lobby/Waiting.tsx";
+import { preload } from "react-dom";
 
 function App() {
+    preload("CardBack.png", {as: "image"});
+    
     return (
         <>
             <Router>

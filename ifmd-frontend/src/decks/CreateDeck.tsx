@@ -6,6 +6,7 @@ import { processDeck } from "./BuildDeck";
 import { ViewDeck }  from "./ViewDeck";
 import Cookies from "js-cookie";
 import { WSS_URL } from "../constants";
+import NavBar from "../home/NavBar";
 
 interface CardGetFormProps {
   deck: string;
@@ -66,7 +67,13 @@ function CreateDeck() {
 
     // No cookie cancel upload
     if (!token) {
+      alert("You are not logged in, please login and recreate your deck")
       return;
+    }
+
+    if (deckName === null || deckName == "") {
+      alert("You must give your deck a name!")
+      return
     }
 
     try {
@@ -127,9 +134,14 @@ function CreateDeck() {
   }
 
   async function handleDeckSubmit(_: any) {
+    if (deckName === null || deckName == "") {
+      alert("You must give your deck a name!")
+      return;
+    }
+
     setUploadDeckState("Uploading")
     let deckData = "";
-
+    
     if (deck != null) {
       for (const card in deck.cards) {
         var cardStruct = deck.cards[card];
@@ -143,6 +155,7 @@ function CreateDeck() {
 
   return (
     <>
+    <NavBar/>
       <h1 className="text-white text-center font-bold mt-4 text-4xl">Create your deck here!</h1>
 
       <div className="text-center text-xl">

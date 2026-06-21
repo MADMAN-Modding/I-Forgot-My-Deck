@@ -177,11 +177,14 @@ function BoardDetail({ clientId: _clientId, data }: { clientId: string; data: Pl
     function cardImageUrl(card: Card, showFront = true): string {
         const key = `${card.id}_${showFront}`;
         if (!(key in imageCache)) {
-            prefetchImage(card.id, showFront);
-            return ""; // placeholder on first render
+            if (card.is_two_faced || showFront) {
+                prefetchImage(card.id, showFront);
+            }
+            return "CardBack.png"; // placeholder on first render
         }
         return imageCache[key];
     }
+
 
     function prefetchImage(id: string, front = true) {
         const key = `${id}_${front}`;
@@ -192,7 +195,7 @@ function BoardDetail({ clientId: _clientId, data }: { clientId: string; data: Pl
             setImageCache((prev) => ({ ...prev, [key]: url }));
         });
     }
-    
+
     return (
         <div>
             {/* Header */}
