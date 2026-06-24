@@ -1,9 +1,17 @@
+import { getToken } from "./account/AccountManagement";
 import { WSS_URL } from "./constants";
 
 export async function getCardImage(id: string, front = true): Promise<string> {
     let base64: string = "";
+    const token = getToken();
+
+    if (!token) {
+        alert("You are not logged in, please login and recreate your deck")
+        return "CardBack.png";
+    }
+
     try {
-        const response = await fetch(`https://${WSS_URL}/api/card/img/${encodeURIComponent(id)}/${encodeURIComponent(front)}`)
+        const response = await fetch(`https://${WSS_URL}/api/card/img/${encodeURIComponent(id)}/${encodeURIComponent(front)}/${encodeURIComponent(token)}`)
 
         if (response.ok) {
             base64 = await response.text()

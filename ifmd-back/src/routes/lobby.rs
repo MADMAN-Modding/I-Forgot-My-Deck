@@ -1,19 +1,19 @@
+use crate::{
+    database::{self, token_exists},
+    lobby::client::{Client, ClientData, ClientType, PlayerData, TableData},
+    state::{AppState, LobbyState, WaitingPlayer},
+};
+use axum::extract::ws::{Message, WebSocket};
 use axum::{
     Json,
     extract::{Path, State, WebSocketUpgrade},
     http::StatusCode,
     response::IntoResponse,
 };
-use axum::extract::ws::{Message, WebSocket};
-use tokio::sync::broadcast;
-use futures::{StreamExt, SinkExt};
+use futures::{SinkExt, StreamExt};
 use serde_json::json;
 use std::{collections::HashSet, sync::Arc};
-use crate::{
-    database,
-    lobby::client::{Client, ClientData, ClientType, PlayerData, TableData},
-    state::{AppState, LobbyState, WaitingPlayer},
-};
+use tokio::sync::broadcast;
 
 // ── Waiting room HTTP endpoint ─────────────────────────────────────────────
 
@@ -22,28 +22,51 @@ pub async fn create_lobby(
     Path((lobby_id, token)): Path<(String, String)>,
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
+    if !token_exists(&state.database, &token).await {
+        return (StatusCode::BAD_REQUEST, "Invalid Token").into_response();
+    }
+
     let account_id = match database::get_account_from_token(&state.database, token.clone()).await {
         Ok(id) => id,
-        Err(_) => return (StatusCode::UNAUTHORIZED, Json(json!({"error": "invalid token"}))).into_response(),
+        Err(_) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"error": "invalid token"})),
+            )
+                .into_response();
+        }
     };
     match database::get_account(&state.database, &account_id).await {
         Ok(_) => {}
-        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "account not found"}))).into_response(),
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": "account not found"})),
+            )
+                .into_response();
+        }
     };
 
     let mut lobby_states = state.lobby_states.lock().unwrap();
     if lobby_states.contains_key(&lobby_id) {
-        return (StatusCode::CONFLICT, Json(json!({"error": "lobby already exists"}))).into_response();
+        return (
+            StatusCode::CONFLICT,
+            Json(json!({"error": "lobby already exists"})),
+        )
+            .into_response();
     }
     let (waiting_tx, _) = broadcast::channel::<String>(64);
-    lobby_states.insert(lobby_id.clone(), LobbyState {
-        creator_token: token,
-        started: false,
-        allowed_tokens: HashSet::new(),
-        waiting_players: Vec::new(),
-        waiting_tx,
-        table_count: 0,
-    });
+    lobby_states.insert(
+        lobby_id.clone(),
+        LobbyState {
+            creator_token: token,
+            started: false,
+            allowed_tokens: HashSet::new(),
+            waiting_players: Vec::new(),
+            waiting_tx,
+            table_count: 0,
+        },
+    );
 
     (StatusCode::OK, Json(json!({"lobby_id": lobby_id}))).into_response()
 }
@@ -55,10 +78,20 @@ pub async fn ws_waiting_handler(
     Path((lobby_id, token)): Path<(String, String)>,
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_waiting_socket(socket, state, lobby_id, token))
+    ws.on_upgrade(async move |socket| {
+        if !token_exists(&state.database, &token).await {
+            return;
+        }
+        handle_waiting_socket(socket, state, lobby_id, token).await
+    })
 }
 
-async fn handle_waiting_socket(stream: WebSocket, state: Arc<AppState>, lobby_id: String, token: String) {
+async fn handle_waiting_socket(
+    stream: WebSocket,
+    state: Arc<AppState>,
+    lobby_id: String,
+    token: String,
+) {
     // Validate token
     let account_id = match database::get_account_from_token(&state.database, token.clone()).await {
         Ok(id) => id,
@@ -71,7 +104,10 @@ async fn handle_waiting_socket(stream: WebSocket, state: Arc<AppState>, lobby_id
 
     // Check lobby exists and hasn't started yet
     enum LobbyCheck {
-        Ok { waiting_tx: broadcast::Sender<String>, is_creator: bool },
+        Ok {
+            waiting_tx: broadcast::Sender<String>,
+            is_creator: bool,
+        },
         Started,
         NotFound,
     }
@@ -89,19 +125,30 @@ async fn handle_waiting_socket(stream: WebSocket, state: Arc<AppState>, lobby_id
     };
 
     let (waiting_tx, is_creator) = match check {
-        LobbyCheck::Ok { waiting_tx, is_creator } => (waiting_tx, is_creator),
+        LobbyCheck::Ok {
+            waiting_tx,
+            is_creator,
+        } => (waiting_tx, is_creator),
         LobbyCheck::Started => {
             let (mut sender, _) = stream.split();
-            let _ = sender.send(Message::Text(
-                json!({"type": "rejected", "reason": "game_started"}).to_string().into()
-            )).await;
+            let _ = sender
+                .send(Message::Text(
+                    json!({"type": "rejected", "reason": "game_started"})
+                        .to_string()
+                        .into(),
+                ))
+                .await;
             return;
         }
         LobbyCheck::NotFound => {
             let (mut sender, _) = stream.split();
-            let _ = sender.send(Message::Text(
-                json!({"type": "rejected", "reason": "lobby_not_found"}).to_string().into()
-            )).await;
+            let _ = sender
+                .send(Message::Text(
+                    json!({"type": "rejected", "reason": "lobby_not_found"})
+                        .to_string()
+                        .into(),
+                ))
+                .await;
             return;
         }
     };
@@ -134,7 +181,11 @@ async fn handle_waiting_socket(stream: WebSocket, state: Arc<AppState>, lobby_id
     // Send the current player list directly to this client (the broadcast above was
     // sent before we subscribed, so this client would otherwise miss it)
     let initial_update = build_waiting_update(&state, &lobby_id);
-    if sender.send(Message::Text(initial_update.into())).await.is_err() {
+    if sender
+        .send(Message::Text(initial_update.into()))
+        .await
+        .is_err()
+    {
         return;
     }
 
@@ -150,14 +201,18 @@ async fn handle_waiting_socket(stream: WebSocket, state: Arc<AppState>, lobby_id
                     if parsed["type"] == "start_game" {
                         let is_creator = {
                             let ls = state_clone.lobby_states.lock().unwrap();
-                            ls.get(&lobby_clone).map(|l| l.creator_token == token_clone).unwrap_or(false)
+                            ls.get(&lobby_clone)
+                                .map(|l| l.creator_token == token_clone)
+                                .unwrap_or(false)
                         };
                         if is_creator {
                             // Lock in the player list and mark the lobby started
                             {
                                 let mut ls = state_clone.lobby_states.lock().unwrap();
                                 if let Some(lobby) = ls.get_mut(&lobby_clone) {
-                                    lobby.allowed_tokens = lobby.waiting_players.iter()
+                                    lobby.allowed_tokens = lobby
+                                        .waiting_players
+                                        .iter()
                                         .map(|p| p.token.clone())
                                         .collect();
                                     lobby.started = true;
@@ -185,7 +240,9 @@ async fn handle_waiting_socket(stream: WebSocket, state: Arc<AppState>, lobby_id
         if let Some(lobby) = ls.get_mut(&lobby_id) {
             if !lobby.started {
                 lobby.waiting_players.retain(|p| p.token != token);
-                let players: Vec<serde_json::Value> = lobby.waiting_players.iter()
+                let players: Vec<serde_json::Value> = lobby
+                    .waiting_players
+                    .iter()
                     .map(|p| json!({"name": p.display_name}))
                     .collect();
                 let msg = json!({"type": "waiting_update", "players": players}).to_string();
@@ -197,8 +254,14 @@ async fn handle_waiting_socket(stream: WebSocket, state: Arc<AppState>, lobby_id
 
 fn build_waiting_update(state: &Arc<AppState>, lobby_id: &str) -> String {
     let ls = state.lobby_states.lock().unwrap();
-    let players: Vec<serde_json::Value> = ls.get(lobby_id)
-        .map(|l| l.waiting_players.iter().map(|p| json!({"name": p.display_name})).collect())
+    let players: Vec<serde_json::Value> = ls
+        .get(lobby_id)
+        .map(|l| {
+            l.waiting_players
+                .iter()
+                .map(|p| json!({"name": p.display_name}))
+                .collect()
+        })
         .unwrap_or_default();
     json!({"type": "waiting_update", "players": players}).to_string()
 }
@@ -213,8 +276,26 @@ pub async fn ws_handler(
 ) -> impl IntoResponse {
     ws.on_upgrade(move |socket| async move {
         match client_type.to_uppercase().as_str() {
-            "MAT"   => handle_socket(socket, state, lobby_id, Client::<PlayerData>::from_str(&client_type), None).await,
-            "TABLE" => handle_socket(socket, state, lobby_id, Client::<TableData>::from_str(&client_type), None).await,
+            "MAT" => {
+                handle_socket(
+                    socket,
+                    state,
+                    lobby_id,
+                    Client::<PlayerData>::from_str(&client_type),
+                    None,
+                )
+                .await
+            }
+            "TABLE" => {
+                handle_socket(
+                    socket,
+                    state,
+                    lobby_id,
+                    Client::<TableData>::from_str(&client_type),
+                    None,
+                )
+                .await
+            }
             _ => (),
         }
     })
@@ -227,10 +308,32 @@ pub async fn ws_handler_auth(
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
     ws.on_upgrade(move |socket| async move {
-        match client_type.to_uppercase().as_str() {
-            "MAT"   => handle_socket(socket, state, lobby_id, Client::<PlayerData>::from_str(&client_type), Some(token)).await,
-            "TABLE" => handle_socket(socket, state, lobby_id, Client::<TableData>::from_str(&client_type), None).await,
-            _ => (),
+        if !token_exists(&state.database, &token).await {
+            return;
+        } else {
+            match client_type.to_uppercase().as_str() {
+                "MAT" => {
+                    handle_socket(
+                        socket,
+                        state,
+                        lobby_id,
+                        Client::<PlayerData>::from_str(&client_type),
+                        Some(token),
+                    )
+                    .await
+                }
+                "TABLE" => {
+                    handle_socket(
+                        socket,
+                        state,
+                        lobby_id,
+                        Client::<TableData>::from_str(&client_type),
+                        None,
+                    )
+                    .await
+                }
+                _ => (),
+            }
         }
     })
 }
@@ -241,8 +344,14 @@ async fn handle_socket<T>(
     lobby_id: String,
     client_struct: Client<T>,
     token: Option<String>,
-) where T: ClientData {
-    println!("Client for lobby {} connected as {}.", lobby_id, client_struct.client_type.to_string());
+) where
+    T: ClientData,
+{
+    println!(
+        "Client for lobby {} connected as {}.",
+        lobby_id,
+        client_struct.client_type.to_string()
+    );
 
     let is_table = matches!(client_struct.client_type, ClientType::TABLE);
 
@@ -251,17 +360,22 @@ async fn handle_socket<T>(
         let reject = {
             let ls = state.lobby_states.lock().unwrap();
             match ls.get(&lobby_id) {
-                Some(lobby) if lobby.started => {
-                    !token.as_ref().map(|t| lobby.allowed_tokens.contains(t)).unwrap_or(false)
-                }
+                Some(lobby) if lobby.started => !token
+                    .as_ref()
+                    .map(|t| lobby.allowed_tokens.contains(t))
+                    .unwrap_or(false),
                 _ => false,
             }
         };
         if reject {
             let (mut sender, _) = stream.split();
-            let _ = sender.send(Message::Text(
-                json!({"type": "rejected", "reason": "not_allowed"}).to_string().into()
-            )).await;
+            let _ = sender
+                .send(Message::Text(
+                    json!({"type": "rejected", "reason": "not_allowed"})
+                        .to_string()
+                        .into(),
+                ))
+                .await;
             return;
         }
     }
@@ -285,9 +399,13 @@ async fn handle_socket<T>(
         };
         if at_limit {
             let (mut sender, _) = stream.split();
-            let _ = sender.send(Message::Text(
-                json!({"type": "rejected", "reason": "table_limit"}).to_string().into()
-            )).await;
+            let _ = sender
+                .send(Message::Text(
+                    json!({"type": "rejected", "reason": "table_limit"})
+                        .to_string()
+                        .into(),
+                ))
+                .await;
             return;
         }
     }
@@ -304,7 +422,10 @@ async fn handle_socket<T>(
     let mut rx = tx.subscribe();
     let (mut sender, mut receiver) = stream.split();
 
-    sender.send(Message::Text(client_struct.client_type.to_string().into())).await.unwrap();
+    sender
+        .send(Message::Text(client_struct.client_type.to_string().into()))
+        .await
+        .unwrap();
 
     // For MAT clients: send saved game state if one exists for this token + lobby
     if !is_table {
@@ -342,7 +463,9 @@ async fn handle_socket<T>(
                     if parsed["type"] == "save_state" {
                         if let Some(ref t) = token_clone {
                             let mut gs = state_clone.game_states.lock().unwrap();
-                            gs.entry(lobby_clone.clone()).or_default().insert(t.clone(), parsed);
+                            gs.entry(lobby_clone.clone())
+                                .or_default()
+                                .insert(t.clone(), parsed);
                         }
                         continue;
                     }

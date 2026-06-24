@@ -301,7 +301,7 @@ pub async fn get_code(database: &Pool<Sqlite>, code: &String) -> Result<Code, sq
 }
 
 /// Get code action and data from a code
-pub async fn check_token(database: &Pool<Sqlite>, token: String) -> Result<Token, sqlx::Error> {
+pub async fn check_token(database: &Pool<Sqlite>, token: &str) -> Result<Token, sqlx::Error> {
     sqlx::query_as::<_, Token>(
         r#"
         SELECT * FROM tokens
@@ -312,6 +312,15 @@ pub async fn check_token(database: &Pool<Sqlite>, token: String) -> Result<Token
     .bind(token)
     .fetch_one(database)
     .await
+}
+
+pub async fn token_exists(database: &Pool<Sqlite>, token: &str) -> bool {
+    match check_token(database, token).await {
+        Ok(_) => {
+            true
+        }
+        Err(_) => false
+    }
 }
 
 /// Reset the time on a token to the current time to prevent deletion

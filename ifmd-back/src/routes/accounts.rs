@@ -175,7 +175,7 @@ pub async fn token_auth(
     Path(token): Path<String>,
     State(state): State<Arc<AppState>>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, Json<Value>)> {
-    match check_token(&state.database, token).await {
+    match check_token(&state.database, &token).await {
         Ok(token) => {
             reset_token_time(&state.database, &token.token)
                 .await

@@ -1,4 +1,4 @@
-use crate::{constants::get_data_dir, database, deck::cache, state::AppState};
+use crate::{constants::get_data_dir, database::{self, token_exists}, deck::cache, state::AppState};
 use axum::{
     Json, extract::{Path, State}, http::StatusCode
 };
@@ -7,9 +7,13 @@ use std::sync::Arc;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
     
 pub async fn get_card_by_exact_name(
-    Path((card_name, card_set)): Path<(String, String)>,
+    Path((card_name, card_set, token)): Path<(String, String, String)>,
     State(state): State<Arc<AppState>>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<String>)> {
+     if token_exists(&state.database, &token).await {
+        return Err((StatusCode::BAD_REQUEST, Json("Invalid Token".to_string())));
+    }
+
     println!(
         "Queued exact name lookup for card: {} from set: {}",
         card_name, card_set
@@ -60,9 +64,13 @@ pub async fn get_card_by_exact_name(
 }
 
 pub async fn get_card_image(
-    Path((id, front)): Path<(String, bool)>,
-    State(_): State<Arc<AppState>>,
+    Path((id, front, token)): Path<(String, bool, String)>,
+    State(state): State<Arc<AppState>>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
+    if !token_exists(&state.database, &token).await {
+        return Err((StatusCode::BAD_REQUEST, "Invalid Token".to_string()));
+    }
+
     let path = format!("{}/{}", get_data_dir(), cache::build_path(&id, true, front).await);
 
     let read = match fs::read(path).await {

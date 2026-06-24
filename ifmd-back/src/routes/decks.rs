@@ -9,12 +9,16 @@ use serde_json::{Value, json};
 use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
-use crate::{database, deck::user_deck::UserDeck, routes::accounts, state::AppState};
+use crate::{database::{self, token_exists}, deck::user_deck::UserDeck, routes::accounts, state::AppState};
 
 pub async fn add_deck(
     Path((deck, name, token)): Path<(String, String, String)>,
     State(state): State<Arc<AppState>>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
+    if !token_exists(&state.database, &token).await {
+        return Err((StatusCode::BAD_REQUEST, "Invalid Token".to_string()));
+    }
+
     if name.is_empty() {
         return Err((StatusCode::BAD_REQUEST, "Deck must have a name.".to_string()))
     }
@@ -77,6 +81,10 @@ pub async fn get_user_decks(
     Path(token): Path<String>,
     State(state): State<Arc<AppState>>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, String)> {
+    if !token_exists(&state.database, &token).await {
+        return Err((StatusCode::BAD_REQUEST, "Invalid Token".to_string()));
+    }
+
     let owner = accounts::get_owner_from_token(&state.database, token).await?;
 
     let sql_decks = database::search_table(&state.database, "decks", &owner, "owner")
@@ -101,9 +109,13 @@ pub async fn get_user_decks(
 }
 
 pub async fn get_deck_list(
-    Path((token, id)): Path<(String, String)>,
+    Path((id, token)): Path<(String, String)>,
     State(state): State<Arc<AppState>>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, String)> {
+    if !token_exists(&state.database, &token).await {
+        return Err((StatusCode::BAD_REQUEST, "Invalid Token".to_string()));
+    }
+
     let deck = match get_deck_from_db(token, id, &state.database).await {
         Ok(v) => v,
         Err(e) => return Err(e),
@@ -113,9 +125,13 @@ pub async fn get_deck_list(
 }
 
 pub async fn delete_deck(
-    Path((token, id)): Path<(String, String)>,
+    Path((id, token)): Path<(String, String)>,
     State(state): State<Arc<AppState>>,
 ) -> Result<(StatusCode, Json<Value>), (StatusCode, String)> {
+    if !token_exists(&state.database, &token).await {
+        return Err((StatusCode::BAD_REQUEST, "Invalid Token".to_string()));
+    }
+    
     let deck = match get_deck_from_db(token, id, &state.database).await {
         Ok(v) => v,
         Err(e) => return Err(e),

@@ -35,20 +35,21 @@ async fn main() {
     // Define your router
     let app = Router::new()
         .route(
-            "/api/card/name/{card_name}/{card_set}",
-            get(get_card_by_exact_name),
-        )
-        .route(
             "/api/account/create/{display_name}/{id}/{email}/{password}",
             get(make_account),
         )
         .route("/api/account/auth/{id}/{password}", get(auth_account))
         .route("/api/account/verify/{code}", get(verify_account))
         .route("/api/account/token/{token}", get(token_auth))
+        .route(
+            "/api/card/name/{card_name}/{card_set}/{token}",
+            get(get_card_by_exact_name),
+        )
+        .route("/api/card/img/{id}/{front}/{token}", get(get_card_image))
         .route("/api/decks/add/{deck}/{name}/{token}", get(add_deck))
         .route("/api/decks/get/{token}", get(get_user_decks))
-        .route("/api/deck_list/get/{token}/{id}", get(get_deck_list))
-        .route("/api/decks/delete/{token}/{id}", get(delete_deck))
+        .route("/api/deck_list/get/{id}/{token}", get(get_deck_list))
+        .route("/api/decks/delete/{id}/{token}", get(delete_deck))
         .route("/ws/join/{lobby_id}/{client_type}", get(ws_handler))
         .route(
             "/ws/join/{lobby_id}/{client_type}/{token}",
@@ -56,7 +57,6 @@ async fn main() {
         )
         .route("/ws/waiting/{lobby_id}/{token}", get(ws_waiting_handler))
         .route("/api/lobby/create/{lobby_id}/{token}", get(create_lobby))
-        .route("/api/card/img/{id}/{front}", get(get_card_image))
         .layer(CorsLayer::permissive())
         .with_state(app_state.clone());
 

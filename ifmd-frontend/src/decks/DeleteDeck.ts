@@ -8,7 +8,7 @@ export async function deleteDeck(deckID: string): Promise<string> {
             return "No valid token in session, please log back in.";
         }
 
-        const response = await fetch(`https://127.0.0.1:3000/api/decks/delete/${encodeURIComponent(token)}/${encodeURIComponent(deckID)}`);
+        const response = await fetch(`https://127.0.0.1:3000/api/decks/delete/${encodeURIComponent(deckID)}/${encodeURIComponent(token)}`);
 
         const data = await response.json();
 

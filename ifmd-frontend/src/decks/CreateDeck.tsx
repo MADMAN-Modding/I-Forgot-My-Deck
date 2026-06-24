@@ -7,6 +7,7 @@ import { ViewDeck }  from "./ViewDeck";
 import Cookies from "js-cookie";
 import { WSS_URL } from "../constants";
 import NavBar from "../home/NavBar";
+import { getToken } from "../account/AccountManagement";
 
 interface CardGetFormProps {
   deck: string;
@@ -105,7 +106,14 @@ function CreateDeck() {
     setBuildingDone(false);
     for (const c of processedDeck.cards) {
       try {
-        const response = await fetch(`https://${WSS_URL}/api/card/name/${encodeURIComponent(c.name)}/${c.set_id}`);
+        const token = getToken();
+
+        if (!token) {
+          alert("Invalid Token")
+          return;
+        }
+
+        const response = await fetch(`https://${WSS_URL}/api/card/name/${encodeURIComponent(c.name)}/${c.set_id}/${encodeURIComponent(token)}`);
 
         const data = await response.json();
 
