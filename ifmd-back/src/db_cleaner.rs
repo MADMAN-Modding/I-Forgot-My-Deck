@@ -36,7 +36,10 @@ pub async fn run_clean(database: Pool<Sqlite>) {
         let codes: Vec<Code> = get_all_rows(&database, "codes").await.expect("Error getting codes");
 
         for code in codes {
-            let time = sqlite_time_to_epoch_seconds(&code.time).unwrap();
+            let time = match sqlite_time_to_epoch_seconds(&code.time) {
+                Ok(v) => v,
+                Err(e) => {eprintln!("{e:?}"); break;}
+            };
 
             if older_than_x_min(&time, constants::CODE_EXPIRATION) {
                 delete_row(&database, "codes", &code).await.unwrap();
