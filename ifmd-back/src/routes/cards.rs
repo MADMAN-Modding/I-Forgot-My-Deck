@@ -10,7 +10,7 @@ pub async fn get_card_by_exact_name(
     Path((card_name, card_set, token)): Path<(String, String, String)>,
     State(state): State<Arc<AppState>>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), (StatusCode, Json<String>)> {
-     if token_exists(&state.database, &token).await {
+     if !token_exists(&state.database, &token).await {
         return Err((StatusCode::BAD_REQUEST, Json("Invalid Token".to_string())));
     }
 
