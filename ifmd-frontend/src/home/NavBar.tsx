@@ -82,9 +82,9 @@ function NavBar() {
                         </>
                     ) : (
                         <div>
-                            <Link to="account/auth/">Login</Link>
+                            <Link to="/account/auth/">Login</Link>
                             &nbsp;&amp;&nbsp;
-                            <Link to="account/create">Signup</Link>
+                            <Link to="/account/create">Signup</Link>
                         </div>
                     )}
                 </>
