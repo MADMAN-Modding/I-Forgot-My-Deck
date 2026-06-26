@@ -11,6 +11,7 @@ import { getCardImage } from "../../ImageHandling";
 import { useMenuPosition } from "./useMenuPosition";
 import { shuffleArray } from "./shuffleArray";
 import { TableModalContent } from "./TableModalContent";
+import { useLongPress } from "./useLongPress";
 
 interface DragState {
     cardIndex: number;
@@ -49,6 +50,18 @@ export function Mat() {
     const [handContextMenu, setHandContextMenu] = useState<ContextMenuState | null>(null);
     const bfMenu = useMenuPosition(contextMenu?.x ?? null, contextMenu?.y ?? null);
     const handMenu = useMenuPosition(handContextMenu?.x ?? null, handContextMenu?.y ?? null);
+    const longPressBfIndexRef = useRef<number | null>(null);
+    const longPressHandIndexRef = useRef<number | null>(null);
+    const bfLongPress = useLongPress((x, y) => {
+        if (longPressBfIndexRef.current !== null) {
+            setContextMenu({ index: longPressBfIndexRef.current, x, y });
+        }
+    });
+    const handLongPress = useLongPress((x, y) => {
+        if (longPressHandIndexRef.current !== null) {
+            setHandContextMenu({ index: longPressHandIndexRef.current, x, y });
+        }
+    });
     const [showGraveyard, setShowGraveyard] = useState(false);
     const [showExile, setShowExile] = useState(false);
     const [showTableModal, setShowTableModal] = useState(false);
@@ -805,6 +818,49 @@ export function Mat() {
                             }
                         }}
                         onMouseDown={(e) => handleCardMouseDown(e, index)}
+                        onTouchStart={(e) => {
+                            longPressBfIndexRef.current = index;
+                            bfLongPress.onTouchStart(e);
+                            const touch = e.touches[0];
+                            if (touch && battlefieldRef.current) {
+                                const rect = battlefieldRef.current.getBoundingClientRect();
+                                const card = battlefield[index];
+                                draggingRef.current = {
+                                    cardIndex: index,
+                                    offsetX: (touch.clientX - rect.left) - card.location[0],
+                                    offsetY: (touch.clientY - rect.top) - card.location[1],
+                                };
+                            }
+                        }}
+                        onTouchMove={(e) => {
+                            bfLongPress.onTouchMove(e);
+                            const touch = e.touches[0];
+                            const drag = draggingRef.current;
+                            if (!touch || !drag || !battlefieldRef.current) return;
+                            const rect = battlefieldRef.current.getBoundingClientRect();
+                            const newX = Math.max(0, (touch.clientX - rect.left) - drag.offsetX);
+                            const newY = Math.max(0, (touch.clientY - rect.top) - drag.offsetY);
+                            setBattlefield((prev) => {
+                                const updated = prev.map((c, i) =>
+                                    i === drag.cardIndex
+                                        ? { ...c, location: [newX, newY] as [number, number] }
+                                        : c
+                                );
+                                bfDataRef.current = updated;
+                                return updated;
+                            });
+                        }}
+                        onTouchEnd={(e) => {
+                            bfLongPress.onTouchEnd(e);
+                            if (draggingRef.current) {
+                                draggingRef.current = null;
+                                sendState(handRef.current, bfDataRef.current, lifeRef.current, cmdDmgRef.current);
+                            }
+                        }}
+                        onTouchCancel={(e) => {
+                            bfLongPress.onTouchCancel();
+                            draggingRef.current = null;
+                        }}
                         onDoubleClick={(e) => {
                             e.stopPropagation();
                             setLightbox({
@@ -1178,6 +1234,10 @@ export function Mat() {
                             className="flex-shrink-0 cursor-pointer hover:scale-105 hover:-translate-y-2 transition-transform"
                             title={`Click to play · Right-click for more options`}
                             onClick={() => playCard(index)}
+                            onTouchStart={(e) => { longPressHandIndexRef.current = index; handLongPress.onTouchStart(e); }}
+                            onTouchMove={handLongPress.onTouchMove}
+                            onTouchEnd={handLongPress.onTouchEnd}
+                            onTouchCancel={handLongPress.onTouchCancel}
                             onContextMenu={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
