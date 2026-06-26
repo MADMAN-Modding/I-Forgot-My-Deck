@@ -347,13 +347,14 @@ export function Mat() {
     function playCard(index: number) {
         const card = hand[index];
         const newHand = hand.filter((_, i) => i !== index);
-        const col = battlefield.length % 8;
-        const row = Math.floor(battlefield.length / 8);
+        const col = 1 % 8;
+        const row = Math.floor(1 / 8);
+        const randomOffset = Math.floor(10 * Math.random());
         const playedCard: PlayedCard = {
             card,
             show_front: true,
             tapped: false,
-            location: [10 + col * 100, 10 + row * 150],
+            location: [10 + col * 100 + randomOffset, 10 + row * 150 + randomOffset],
             rotation: 0,
             strength_mod: 0,
             toughness_mod: 0,
