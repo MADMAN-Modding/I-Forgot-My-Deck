@@ -15,6 +15,8 @@ function Home() {
                     </Link>
                     !
                 </h2>
+
+                <p className="text-sm fixed bottom-0">I Forgot My Deck is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC.</p>
             </div>
         </>
     );
