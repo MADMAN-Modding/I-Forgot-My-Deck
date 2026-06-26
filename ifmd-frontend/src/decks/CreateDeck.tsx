@@ -19,22 +19,24 @@ interface CardGetFormProps {
 function CardGetForm({ deck, setDeck, handleSubmit, show }: CardGetFormProps) {
   if (show) {
     return (
-      <div className="mt-5 flex flex-wrap *:text-white place-content-center">
+      <div className="mt-5 flex flex-col items-center text-center *:text-white">
         <div>
           <p>Paste in your deck from Moxfield here!</p>
           <p>Use Moxfield format</p>
         </div>
-        <div className="mt-4 flex flex-wrap w-2/3 m-auto rounded-2xl">
-          <form onSubmit={handleSubmit}>
-            <label>
+        <div className="mt-4 rounded-2xl w-full max-w-md">
+          <form onSubmit={handleSubmit} className="flex flex-col items-center">
+            <label className="w-full">
               <textarea
-                className="bg-(--main-color) rounded-2xl"
+                className="bg-(--main-color) rounded-2xl w-full min-h-40 p-3"
                 value={deck}
                 onChange={(e) => setDeck(e.target.value)}
               />
             </label>
 
-            <button type="submit">Search</button>
+            <button type="submit" className="mt-3 px-4 py-1 rounded-xl bg-(--main-color) hover:cursor-pointer">
+              Search
+            </button>
           </form>
         </div>
       </div>
@@ -174,7 +176,7 @@ function CreateDeck() {
             <h1></h1>
           }
         </div>
-        <div className="place-content-center">
+        <div className="">
           <CardGetForm
             deck={deckList}
             setDeck={setDeckList}
