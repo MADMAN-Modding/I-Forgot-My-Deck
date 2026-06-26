@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Card, Deck } from "../types";
 import { processDeck } from "./BuildDeck";
-import { ViewDeck }  from "./ViewDeck";
+import { ViewDeck } from "./ViewDeck";
 import Cookies from "js-cookie";
 import { WSS_URL } from "../constants";
 import NavBar from "../home/NavBar";
@@ -19,28 +19,25 @@ interface CardGetFormProps {
 function CardGetForm({ deck, setDeck, handleSubmit, show }: CardGetFormProps) {
   if (show) {
     return (
-      <>
-        <div className="mt-5 flex flex-wrap *:text-white">
-          <div>
-            <p>Paste in your deck from Moxfield here!</p>
-            <p>Use Moxfield format</p>
-          </div>
-          <div className="mt-4 flex flex-wrap w-2/3 m-auto rounded-2xl">
-
-            <form onSubmit={handleSubmit}>
-              <label>
-                <textarea
-                  className="bg-(--main-color) rounded-2xl"
-                  value={deck}
-                  onChange={(e) => setDeck(e.target.value)}
-                />
-              </label>
-
-              <button type="submit">Search</button>
-            </form>
-          </div>
+      <div className="mt-5 flex flex-wrap *:text-white place-content-center">
+        <div>
+          <p>Paste in your deck from Moxfield here!</p>
+          <p>Use Moxfield format</p>
         </div>
-      </>
+        <div className="mt-4 flex flex-wrap w-2/3 m-auto rounded-2xl">
+          <form onSubmit={handleSubmit}>
+            <label>
+              <textarea
+                className="bg-(--main-color) rounded-2xl"
+                value={deck}
+                onChange={(e) => setDeck(e.target.value)}
+              />
+            </label>
+
+            <button type="submit">Search</button>
+          </form>
+        </div>
+      </div>
     )
   } else {
     return (
@@ -149,7 +146,7 @@ function CreateDeck() {
 
     setUploadDeckState("Uploading")
     let deckData = "";
-    
+
     if (deck != null) {
       for (const card in deck.cards) {
         var cardStruct = deck.cards[card];
@@ -163,54 +160,57 @@ function CreateDeck() {
 
   return (
     <>
-    <NavBar/>
-      <h1 className="text-white text-center font-bold mt-4 text-4xl">Create your deck here!</h1>
+      <NavBar />
+      <div>
+        <h1 className="text-white text-center font-bold mt-4 text-4xl">Create your deck here!</h1>
 
-      <div className="text-center text-xl">
-        {buildingDone != null ?
-          buildingDone ?
-            <h1 className="text-green-500">Deck Built!</h1>
+        <div className="text-center text-xl">
+          {buildingDone != null ?
+            buildingDone ?
+              <h1 className="text-green-500">Deck Built!</h1>
+              :
+              <h1 className="text-[#333333]">Building Deck...</h1>
             :
-            <h1 className="text-[#333333]">Building Deck...</h1>
-          :
-          <h1></h1>
-        }
-      </div>
-      <CardGetForm
-        deck={deckList}
-        setDeck={setDeckList}
-        handleSubmit={handleSubmit}
-        show={(buildingDone == null)}
-      />
-
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      {buildingDone ? (
-        <form className="m-auto *:text-white text-center" onSubmit={handleDeckSubmit}>
-          <label htmlFor="deckName">Deck Name: </label>
-          <input
-            type="text"
-            id="deckName"
-            className="bg-(--main-color) rounded-xl pl-1 pr-1"
-            value={deckName}
-            onChange={(e) => setDeckName(e.target.value)}
-            required
+            <h1></h1>
+          }
+        </div>
+        <div className="place-content-center">
+          <CardGetForm
+            deck={deckList}
+            setDeck={setDeckList}
+            handleSubmit={handleSubmit}
+            show={(buildingDone == null)}
           />
+        </div>
 
-          <p
-            onClick={uploadDeckState === "Upload" ? handleDeckSubmit : undefined}
-            className={`text-2xl ml-auto mr-auto text-white text-center w-fit p-1 mt-3 rounded-2xl ${
-              uploadDeckState === "Upload"
+        {error && <p style={{ color: "red" }}>{error}</p>}
+
+        {buildingDone ? (
+          <form className="m-auto *:text-white text-center" onSubmit={handleDeckSubmit}>
+            <label htmlFor="deckName">Deck Name: </label>
+            <input
+              type="text"
+              id="deckName"
+              className="bg-(--main-color) rounded-xl pl-1 pr-1"
+              value={deckName}
+              onChange={(e) => setDeckName(e.target.value)}
+              required
+            />
+
+            <p
+              onClick={uploadDeckState === "Upload" ? handleDeckSubmit : undefined}
+              className={`text-2xl ml-auto mr-auto text-white text-center w-fit p-1 mt-3 rounded-2xl ${uploadDeckState === "Upload"
                 ? "hover:cursor-pointer bg-(--main-color)"
                 : "cursor-not-allowed opacity-50 bg-[#555]"
-            }`}
-          >
-            {uploadDeckState} Deck
-          </p>
-        </form>
-      ) : <p></p>}
+                }`}
+            >
+              {uploadDeckState} Deck
+            </p>
+          </form>
+        ) : <p></p>}
+      </div>
+      <ViewDeck deck={deck} showNav={false} />
 
-      <ViewDeck deck={deck} />
     </>
   );
 }

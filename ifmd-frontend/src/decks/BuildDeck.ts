@@ -21,7 +21,7 @@ export function processDeck(fileData: string): Deck {
 
                 // Extract card name and optional set
                 const [namePart, setPart] = afterCount.split('(');
-                
+
                 var isTwoFaced = namePart.includes("//");
 
                 const cardName = namePart.trim().replace('//', '/').replace(/\//g, '//');
@@ -69,10 +69,21 @@ export async function getDeckList(id: string) {
     }
 }
 
-export function sortCommanderFirst(deck: Deck): Deck {
+export function sortCommanderFirst(deck: Deck, alphabeticalSort: boolean = false): Deck {
     var newDeck = {
         cards: []
     } as Deck
+
+    if (alphabeticalSort) {
+        deck.cards.sort((a, b) => {
+            const aLower = a.display_name ?? "".toLowerCase();
+            const bLower = b.display_name ?? "".toLowerCase();
+
+            if (aLower < bLower) return -1;
+            if (aLower > bLower) return 1;
+            return 0;
+        });
+    }
 
     for (const card of deck.cards) {
         if (card.is_commander) {

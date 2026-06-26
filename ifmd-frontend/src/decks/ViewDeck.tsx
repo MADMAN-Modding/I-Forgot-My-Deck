@@ -10,6 +10,7 @@ import NavBar from "../home/NavBar";
 
 interface ViewDeckProps {
     deck: Deck | null;
+    showNav: boolean;
 }
 
 let location = window.location.href;
@@ -18,18 +19,19 @@ let deckPos = location.indexOf("deck");
 
 location = location.substring(0, deckPos);
 
-export function ViewDeck({ deck }: ViewDeckProps) {
+export function ViewDeck({ deck, showNav = true}: ViewDeckProps) {
     if (!deck) {
         return <p className="text-white text-center mt-5 bg-[#333333] w-fit m-auto p-2 rounded-2xl">No deck loaded yet</p>;
     }
 
-    deck = sortCommanderFirst(deck);
+    deck = sortCommanderFirst(deck, true);
 
     const cardImages = useCardImages(deck?.cards.map(c => c.id) ?? []);
 
     return (
         <>
-            <NavBar />
+            {showNav ?
+                <NavBar /> : <></>}
             <div className="*:text-white bg-[rgb(51,51,51)] rounded-4xl w-7/8 m-auto mt-5 grid grid-cols-3 *:text-sm">
                 {deck && deck.cards.length > 0 && (
                     <>
@@ -125,5 +127,5 @@ export function ViewDeckFromID() {
     }, [])
 
     return (<>
-        <ViewDeck deck={deck} /></>)
+        <ViewDeck deck={deck} showNav={true} /></>)
 }
