@@ -857,7 +857,7 @@ export function Mat() {
                                 sendState(handRef.current, bfDataRef.current, lifeRef.current, cmdDmgRef.current);
                             }
                         }}
-                        onTouchCancel={(e) => {
+                        onTouchCancel={(_) => {
                             bfLongPress.onTouchCancel();
                             draggingRef.current = null;
                         }}
