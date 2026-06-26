@@ -1,6 +1,7 @@
-import { useState } from "react";
-import type { PlayedCard, PlayerData } from "../../types";
+import { useRef, useState } from "react";
+import type { Card, PlayedCard, PlayerData } from "../../types";
 import { CardLightbox } from "../components/CardLightbox";
+import { getCardImage } from "../../ImageHandling";
 
 export function TableModalContent({ players, selfId }: { players: Record<string, PlayerData>; selfId: string }) {
     const [selected, setSelected] = useState<string | null>(null);
@@ -90,6 +91,29 @@ function PlayerSummaryCard({
 
 function BoardDetail({ data }: { clientId: string; data: PlayerData }) {
     const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
+    const [imageCache, setImageCache] = useState<Record<string, string>>({});
+    const imageCacheRef = useRef<Record<string, string>>({});
+    
+    function prefetchImage(id: string, front = true) {
+        const key = `${id}_${front}`;
+        if (key in imageCacheRef.current) return; // already fetching or done
+        imageCacheRef.current[key] = ""; // mark as in-flight
+        getCardImage(id, front).then((url) => {
+            imageCacheRef.current[key] = url;
+            setImageCache((prev) => ({ ...prev, [key]: url }));
+        });
+    }
+    function cardImageUrl(card: Card, showFront = true): string {
+        const key = `${card.id}_${showFront}`;
+        if (!(key in imageCache)) {
+            if (card.is_two_faced || showFront) {
+                prefetchImage(card.id, showFront);
+            }
+            return "CardBack.png"; // placeholder on first render
+        }
+        return imageCache[key];
+    }
+
     return (
         <div>
             {/* Header */}
@@ -127,13 +151,11 @@ function BoardDetail({ data }: { clientId: string; data: PlayerData }) {
             ) : (
                 <div className="flex flex-wrap gap-3 mb-4">
                     {data.played_cards.map((pc: PlayedCard, i: number) => {
-                        const imgSrc = pc.card.url?.startsWith("http")
-                            ? pc.card.url
-                            : `/${pc.card.url}`;
+                        const imgSrc = cardImageUrl(pc.card, pc.show_front);
                         return (
                             <div
                                 key={i}
-                                className="relative flex-shrink-0 cursor-pointer"
+                                className="relative shrink-0 cursor-pointer"
                                 style={{
                                     transform: pc.tapped ? "rotate(90deg)" : "none",
                                     transformOrigin: "center",

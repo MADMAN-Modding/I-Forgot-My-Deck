@@ -681,7 +681,7 @@ export function Mat() {
             onClick={() => { setContextMenu(null); setHandContextMenu(null); }}
         >
             {/* ── Top bar: life & info ── */}
-            <div className="flex items-center gap-3 bg-[#1a1a1a] px-4 py-2 flex-shrink-0 flex-wrap">
+            <div className="flex items-center gap-3 bg-[#1a1a1a] px-4 py-2 shrink-0 flex-wrap">
                 <Link
                     to="/lobby"
                     className="bg-[#444] rounded-lg px-3 py-1 text-sm hover:bg-[#555] transition"
@@ -744,7 +744,7 @@ export function Mat() {
             </div>
 
             {/* ── Commander damage row ── */}
-            <div className="flex items-center gap-3 bg-[#222] px-4 py-1 flex-shrink-0 text-sm flex-wrap">
+            <div className="flex items-center gap-3 bg-[#222] px-4 py-1 shrink-0 text-sm flex-wrap">
                 {commanderDamage.length > 0 && (
                     <>
                         <span className="text-[#aaa]">Cmdr damage:</span>
@@ -992,13 +992,13 @@ export function Mat() {
                         </p>
                         <div className="flex gap-5 overflow-x-auto pb-2 justify-center mb-5">
                             {scryPanel.cards.map((card, i) => (
-                                <div key={i} className="flex flex-col items-center gap-2 flex-shrink-0">
+                                <div key={i} className="flex flex-col items-center gap-2 shrink-0">
                                     <img
                                         src={cardImageUrl(card)}
                                         alt={card.display_name ?? card.name}
                                         className="h-36 rounded-xl shadow-lg"
                                     />
-                                    <p className="text-xs text-[#aaa] max-w-[6rem] text-center truncate">
+                                    <p className="text-xs text-[#aaa] max-w-24 text-center truncate">
                                         {card.display_name ?? card.name}
                                     </p>
                                     <div className="flex gap-2">
@@ -1029,7 +1029,7 @@ export function Mat() {
             )}
 
             {/* ── Bottom panel ── */}
-            <div className="bg-[#111] flex-shrink-0">
+            <div className="bg-[#111] shrink-0">
                 {/* Controls */}
                 <div className="flex items-center gap-4 px-3 py-2 border-t border-[#333] text-sm flex-wrap">
                     <span className="text-[#aaa]">Library: {library.length}</span>
@@ -1126,7 +1126,7 @@ export function Mat() {
                                 .map((card, i) => (
                                     <div
                                         key={`search-${i}`}
-                                        className="flex-shrink-0 flex flex-col items-center gap-1"
+                                        className="shrink-0 flex flex-col items-center gap-1"
                                     >
                                         <img
                                             src={cardImageUrl(card)}
@@ -1140,7 +1140,7 @@ export function Mat() {
                                                 })
                                             }
                                         />
-                                        <p className="text-white text-xs text-center max-w-[5rem] truncate">
+                                        <p className="text-white text-xs text-center max-w-20 truncate">
                                             {card.display_name ?? card.name}
                                         </p>
                                         <div className="flex gap-1 flex-wrap justify-center">
@@ -1173,14 +1173,14 @@ export function Mat() {
                         className="flex gap-2 overflow-x-auto p-2 bg-[#1a1400] border-t border-[#333]"
                         style={{ maxHeight: "130px" }}
                     >
-                        <span className="text-[#aaa] self-center text-xs mr-1 flex-shrink-0">
+                        <span className="text-[#aaa] self-center text-xs mr-1 shrink-0">
                             Exile:
                         </span>
                         {exile.length === 0 && (
                             <span className="text-[#555] self-center text-sm">Empty</span>
                         )}
                         {exile.map((card, i) => (
-                            <div key={`ex-${i}`} className="flex-shrink-0 flex flex-col items-center gap-1">
+                            <div key={`ex-${i}`} className="shrink-0 flex flex-col items-center gap-1">
                                 <img
                                     src={cardImageUrl(card)}
                                     alt={card.display_name ?? card.name}
@@ -1199,13 +1199,13 @@ export function Mat() {
                         className="flex gap-2 overflow-x-auto p-2 bg-[#1a1a1a] border-t border-[#333]"
                         style={{ maxHeight: "130px" }}
                     >
-                        <span className="text-[#aaa] self-center text-xs mr-1 flex-shrink-0">
+                        <span className="text-[#aaa] self-center text-xs mr-1 shrink-0">
                             Graveyard:
                         </span>
                         {graveyard.map((card, i) => (
                             <div
                                 key={`gy-${i}`}
-                                className="flex-shrink-0 flex flex-col items-center gap-1"
+                                className="shrink-0 flex flex-col items-center gap-1"
                             >
                                 <img
                                     src={cardImageUrl(card)}
@@ -1231,7 +1231,7 @@ export function Mat() {
                     {hand.map((card, index) => (
                         <div
                             key={`hand-${index}`}
-                            className="flex-shrink-0 cursor-pointer hover:scale-105 hover:-translate-y-2 transition-transform"
+                            className="shrink-0 cursor-pointer hover:scale-105 hover:-translate-y-2 transition-transform"
                             title={`Click to play · Right-click for more options`}
                             onClick={() => playCard(index)}
                             onTouchStart={(e) => { longPressHandIndexRef.current = index; handLongPress.onTouchStart(e); }}
