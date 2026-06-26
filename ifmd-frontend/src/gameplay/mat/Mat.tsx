@@ -61,6 +61,11 @@ export function Mat() {
         if (longPressHandIndexRef.current !== null) {
             setHandContextMenu({ index: longPressHandIndexRef.current, x, y });
         }
+        // A long-press opened the menu — cancel any in-flight drag so lifting
+        // the finger afterward doesn't also play the card.
+        cleanupHandCardDragListeners();
+        handDragRef.current = null;
+        setHandDragVisual(null);
     });
     const [showGraveyard, setShowGraveyard] = useState(false);
     const [showExile, setShowExile] = useState(false);
@@ -79,6 +84,13 @@ export function Mat() {
     // Refs for use inside event handlers where closures would be stale
     const wsRef = useRef<WebSocket | null>(null);
     const draggingRef = useRef<DragState | null>(null);
+    const handDragRef = useRef<{
+        cardIndex: number;
+        startX: number;
+        startY: number;
+        moved: boolean;
+    } | null>(null);
+    const [handDragVisual, setHandDragVisual] = useState<{ index: number; x: number; y: number } | null>(null);
     const battlefieldRef = useRef<HTMLDivElement>(null);
     const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -366,6 +378,26 @@ export function Mat() {
         sendState(newHand, newBattlefield, life, commanderDamage);
     }
 
+    function playCardAt(index: number, x: number, y: number) {
+        const card = hand[index];
+        if (!card) return;
+        const newHand = hand.filter((_, i) => i !== index);
+        const playedCard: PlayedCard = {
+            card,
+            show_front: true,
+            tapped: false,
+            location: [x, y],
+            rotation: 0,
+            strength_mod: 0,
+            toughness_mod: 0,
+            counters: [],
+        };
+        const newBattlefield = [...battlefield, playedCard];
+        setHand(newHand);
+        setBattlefield(newBattlefield);
+        sendState(newHand, newBattlefield, life, commanderDamage);
+    }
+
     function tapCard(index: number) {
         const newBf = battlefield.map((c, i) =>
             i === index ? { ...c, tapped: !c.tapped } : c
@@ -631,6 +663,85 @@ export function Mat() {
         if (draggingRef.current) {
             draggingRef.current = null;
             sendState(handRef.current, bfDataRef.current, lifeRef.current, cmdDmgRef.current);
+        }
+    }
+
+    function startHandCardDrag(index: number, x: number, y: number) {
+        handDragRef.current = { cardIndex: index, startX: x, startY: y, moved: false };
+        setHandDragVisual({ index, x, y });
+        window.addEventListener("mousemove", handleHandDragMouseMove);
+        window.addEventListener("mouseup", handleHandDragMouseUp);
+        window.addEventListener("touchmove", handleHandDragTouchMove, { passive: false });
+        window.addEventListener("touchend", handleHandDragTouchEnd);
+        window.addEventListener("touchcancel", handleHandDragTouchEnd);
+    }
+
+    function updateHandCardDrag(x: number, y: number) {
+        const drag = handDragRef.current;
+        if (!drag) return;
+        const dx = x - drag.startX;
+        const dy = y - drag.startY;
+        if (!drag.moved && Math.sqrt(dx * dx + dy * dy) > 6) {
+            drag.moved = true;
+        }
+        setHandDragVisual({ index: drag.cardIndex, x, y });
+    }
+
+    function endHandCardDrag(x: number, y: number) {
+        const drag = handDragRef.current;
+        cleanupHandCardDragListeners();
+        handDragRef.current = null;
+        setHandDragVisual(null);
+        if (!drag) return;
+
+        if (!drag.moved) {
+            // Treated as a plain click/tap — keep existing auto-position behavior.
+            playCard(drag.cardIndex);
+            return;
+        }
+
+        const bfEl = battlefieldRef.current;
+        if (!bfEl) return;
+        const rect = bfEl.getBoundingClientRect();
+        const overBattlefield =
+            x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+        if (overBattlefield) {
+            playCardAt(drag.cardIndex, x - rect.left, y - rect.top);
+        }
+        // If dropped outside the battlefield, the card simply stays in hand.
+    }
+
+    function cleanupHandCardDragListeners() {
+        window.removeEventListener("mousemove", handleHandDragMouseMove);
+        window.removeEventListener("mouseup", handleHandDragMouseUp);
+        window.removeEventListener("touchmove", handleHandDragTouchMove);
+        window.removeEventListener("touchend", handleHandDragTouchEnd);
+        window.removeEventListener("touchcancel", handleHandDragTouchEnd);
+    }
+
+    function handleHandDragMouseMove(e: MouseEvent) {
+        updateHandCardDrag(e.clientX, e.clientY);
+    }
+
+    function handleHandDragMouseUp(e: MouseEvent) {
+        endHandCardDrag(e.clientX, e.clientY);
+    }
+
+    function handleHandDragTouchMove(e: TouchEvent) {
+        const touch = e.touches[0];
+        if (!touch) return;
+        e.preventDefault(); // stop the page from scrolling while dragging a card
+        updateHandCardDrag(touch.clientX, touch.clientY);
+    }
+
+    function handleHandDragTouchEnd(e: TouchEvent) {
+        const touch = e.changedTouches[0];
+        if (touch) {
+            endHandCardDrag(touch.clientX, touch.clientY);
+        } else {
+            cleanupHandCardDragListeners();
+            handDragRef.current = null;
+            setHandDragVisual(null);
         }
     }
 
@@ -1234,8 +1345,16 @@ export function Mat() {
                             key={`hand-${index}`}
                             className="shrink-0 cursor-pointer hover:scale-105 hover:-translate-y-2 transition-transform"
                             title={`Click to play · Right-click for more options`}
-                            onClick={() => playCard(index)}
-                            onTouchStart={(e) => { longPressHandIndexRef.current = index; handLongPress.onTouchStart(e); }}
+                            onMouseDown={(e) => {
+                                if (e.button !== 0) return; // only left-click drags
+                                startHandCardDrag(index, e.clientX, e.clientY);
+                            }}
+                            onTouchStart={(e) => {
+                                longPressHandIndexRef.current = index;
+                                handLongPress.onTouchStart(e);
+                                const touch = e.touches[0];
+                                if (touch) startHandCardDrag(index, touch.clientX, touch.clientY);
+                            }}
                             onTouchMove={handLongPress.onTouchMove}
                             onTouchEnd={handLongPress.onTouchEnd}
                             onTouchCancel={handLongPress.onTouchCancel}
@@ -1260,6 +1379,20 @@ export function Mat() {
                     )}
                 </div>
             </div>
+            
+            {/* ── Dragging hand card ghost ── */}
+            {handDragVisual && hand[handDragVisual.index] && (
+                <img
+                    src={cardImageUrl(hand[handDragVisual.index])}
+                    alt=""
+                    className="fixed pointer-events-none h-32 rounded-lg shadow-2xl opacity-90 z-100"
+                    style={{
+                        left: handDragVisual.x,
+                        top: handDragVisual.y,
+                        transform: "translate(-50%, -50%)",
+                    }}
+                />
+            )}
 
             {/* ── Lightbox ── */}
             {lightbox && (
