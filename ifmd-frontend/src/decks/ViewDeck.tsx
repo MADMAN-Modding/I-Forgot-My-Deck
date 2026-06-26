@@ -105,14 +105,15 @@ export function ViewUserDecks() {
 
     return (
         <>
+        <NavBar/>
             <h1 className="text-white text-center text-5xl mt-5">Your Decks</h1>
 
             <div className="m-auto mt-70 bg-[#333333] w-fit p-3 align-middle rounded-2xl">
                 {
-                    decks
+                    (decks?.length ?? 0) > 0 ? decks : <p className="text-center text-white">No Decks Registered to your Account<br/>Register one <Link to={"/deck/create"}>Here</Link></p>
                 }
             </div>
-        </>
+aADde        </>
     )
 }
 
