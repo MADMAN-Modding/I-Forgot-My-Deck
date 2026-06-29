@@ -1342,7 +1342,7 @@ export function Mat() {
                     {hand.map((card, index) => (
                         <div
                             key={`hand-${index}`}
-                            className="shrink-0 cursor-pointer hover:scale-150 hover:-translate-y-8 hover:z-50 relative transition-transform duration-150"
+                            className="shrink-0 cursor-pointer hover:scale-150 hover:-translate-y-8 relative transition-transform duration-150"
                             title={`Click to enlarge · Right-click for more options`}
                             onClick={(e) => {
                                 e.stopPropagation();
