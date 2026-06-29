@@ -12,7 +12,7 @@ use ifmd_back::{
 };
 use tower_http::cors::CorsLayer;
 
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 #[tokio::main]
 async fn main() {
@@ -30,6 +30,15 @@ async fn main() {
 
     tokio::spawn(async move {
         ifmd_back::db_cleaner::run_clean(db).await;
+    });
+
+    let state_clone = app_state.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(60));
+        loop {
+            interval.tick().await;
+            state_clone.prune_expired_game_states();
+        }
     });
 
     // Define your router

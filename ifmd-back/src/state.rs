@@ -1,9 +1,43 @@
-use std::{collections::{HashMap, HashSet}, sync::Mutex};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Mutex,
+    time::{Duration, Instant},
+};
 
 use serde_json::Value;
 use tokio::sync::broadcast;
 
 use crate::{account::email::EmailConfig, json_handler::get_email_config, queue::QueueManager};
+
+pub const GAME_STATE_RETENTION: Duration = Duration::from_secs(20 * 60);
+
+#[derive(Clone)]
+pub struct CachedGameState {
+    pub payload: Value,
+    pub disconnected_at: Option<Instant>,
+}
+
+impl CachedGameState {
+    pub fn new(payload: Value) -> Self {
+        Self {
+            payload,
+            disconnected_at: None,
+        }
+    }
+
+    pub fn mark_disconnected(&mut self) {
+        self.disconnected_at = Some(Instant::now());
+    }
+
+    pub fn mark_connected(&mut self) {
+        self.disconnected_at = None;
+    }
+
+    pub fn is_expired(&self, now: Instant) -> bool {
+        self.disconnected_at
+            .is_some_and(|disconnected_at| now.duration_since(disconnected_at) >= GAME_STATE_RETENTION)
+    }
+}
 
 /// A player waiting in the lobby waiting room
 pub struct WaitingPlayer {
@@ -34,7 +68,7 @@ pub struct AppState {
     /// Waiting room state per lobby
     pub lobby_states: Mutex<HashMap<String, LobbyState>>,
     /// Saved game state per lobby per player token (for reconnection)
-    pub game_states: Mutex<HashMap<String, HashMap<String, Value>>>,
+    pub game_states: Mutex<HashMap<String, HashMap<String, CachedGameState>>>,
     pub database: sqlx::Pool<sqlx::Sqlite>,
     pub email_config: EmailConfig,
 }
@@ -51,5 +85,15 @@ impl AppState {
             database,
             email_config,
         }
+    }
+
+    pub fn prune_expired_game_states(&self) {
+        let now = Instant::now();
+        let mut game_states = self.game_states.lock().unwrap();
+
+        game_states.retain(|_, player_states| {
+            player_states.retain(|_, cached_state| !cached_state.is_expired(now));
+            !player_states.is_empty()
+        });
     }
 }

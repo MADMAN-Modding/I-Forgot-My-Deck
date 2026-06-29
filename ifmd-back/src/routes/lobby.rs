@@ -1,7 +1,7 @@
 use crate::{
     database::{self, token_exists},
     lobby::client::{Client, ClientData, ClientType, PlayerData, TableData},
-    state::{AppState, LobbyState, WaitingPlayer},
+    state::{AppState, CachedGameState, LobbyState, WaitingPlayer},
 };
 use axum::extract::ws::{Message, WebSocket};
 use axum::{
@@ -12,7 +12,7 @@ use axum::{
 };
 use futures::{SinkExt, StreamExt};
 use serde_json::json;
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::HashSet, sync::Arc, time::Instant};
 use tokio::sync::broadcast;
 
 // ── Waiting room HTTP endpoint ─────────────────────────────────────────────
@@ -431,11 +431,37 @@ async fn handle_socket<T>(
     if !is_table {
         if let Some(ref t) = token {
             let saved = {
-                let gs = state.game_states.lock().unwrap();
-                gs.get(&lobby_id).and_then(|m| m.get(t).cloned())
+                let mut gs = state.game_states.lock().unwrap();
+                let now = Instant::now();
+
+                if let Some(lobby_states) = gs.get_mut(&lobby_id) {
+                    if let Some(cached_state) = lobby_states.get_mut(t) {
+                        if cached_state.is_expired(now) {
+                            lobby_states.remove(t);
+                            None
+                        } else {
+                            Some(cached_state.clone())
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
             };
             if let Some(saved_state) = saved {
-                let msg = json!({"type": "state_restore", "payload": saved_state}).to_string();
+                let _ = sender
+                    .send(Message::Text(
+                        json!({
+                            "type": "rejoin_notice",
+                            "message": "Your saved game is only kept for 15 minutes after disconnect."
+                        })
+                        .to_string()
+                        .into(),
+                    ))
+                    .await;
+
+                let msg = json!({"type": "state_restore", "payload": saved_state.payload}).to_string();
                 if sender.send(Message::Text(msg.into())).await.is_err() {
                     if table_count_incremented {
                         let mut ls = state.lobby_states.lock().unwrap();
@@ -444,6 +470,13 @@ async fn handle_socket<T>(
                         }
                     }
                     return;
+                }
+
+                let mut gs = state.game_states.lock().unwrap();
+                if let Some(lobby_states) = gs.get_mut(&lobby_id) {
+                    if let Some(cached_state) = lobby_states.get_mut(t) {
+                        cached_state.mark_connected();
+                    }
                 }
             }
         }
@@ -465,7 +498,7 @@ async fn handle_socket<T>(
                             let mut gs = state_clone.game_states.lock().unwrap();
                             gs.entry(lobby_clone.clone())
                                 .or_default()
-                                .insert(t.clone(), parsed);
+                                .insert(t.clone(), CachedGameState::new(parsed));
                         }
                         continue;
                     }
@@ -489,6 +522,15 @@ async fn handle_socket<T>(
         let mut ls = state.lobby_states.lock().unwrap();
         if let Some(lobby) = ls.get_mut(&lobby_id) {
             lobby.table_count = lobby.table_count.saturating_sub(1);
+        }
+    }
+
+    if let Some(ref t) = token {
+        let mut gs = state.game_states.lock().unwrap();
+        if let Some(lobby_states) = gs.get_mut(&lobby_id) {
+            if let Some(cached_state) = lobby_states.get_mut(t) {
+                cached_state.mark_disconnected();
+            }
         }
     }
 }
