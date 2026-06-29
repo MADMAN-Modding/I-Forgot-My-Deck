@@ -5,6 +5,7 @@ import { CardLightbox } from "./components/CardLightbox";
 import { WSS_URL } from "../constants";
 import { Link } from "react-router-dom";
 import { getCardImage } from "../ImageHandling";
+import { effectiveLifeTotal } from "./commanderDamage";
 
 interface PlayerEntry {
     clientId: string;
@@ -137,6 +138,7 @@ interface PlayerCardProps {
 
 function PlayerCard({ clientId: _clientId, data, onClick }: PlayerCardProps) {
     const commanderName = data.deck?.cards;
+    const shownLife = effectiveLifeTotal(data.life, data.commander_damage);
 
     return (
         <div
@@ -151,7 +153,7 @@ function PlayerCard({ clientId: _clientId, data, onClick }: PlayerCardProps) {
                     {data.deck?.owner && <p className="text-xs text-[#666]">{data.deck.owner}</p>}
                 </div>
                 <div className="ml-auto text-center">
-                    <p className="text-4xl font-bold">{data.life}</p>
+                    <p className="text-4xl font-bold">{shownLife}</p>
                     <p className="text-xs text-[#888]">life</p>
                 </div>
             </div>
@@ -180,6 +182,7 @@ function PlayerCard({ clientId: _clientId, data, onClick }: PlayerCardProps) {
 
 function BoardDetail({ clientId: _clientId, data }: { clientId: string; data: PlayerData }) {
     const commanderName = data.deck?.cards;
+    const shownLife = effectiveLifeTotal(data.life, data.commander_damage);
     const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
 
     // Image cache
@@ -217,7 +220,7 @@ function BoardDetail({ clientId: _clientId, data }: { clientId: string; data: Pl
                     {data.deck?.owner && <p className="text-sm text-[#666]">{data.deck.owner}</p>}
                 </div>
                 <div className="ml-auto text-center">
-                    <p className="text-5xl font-bold">{data.life}</p>
+                    <p className="text-5xl font-bold">{shownLife}</p>
                     <p className="text-xs text-[#888]">life</p>
                 </div>
             </div>

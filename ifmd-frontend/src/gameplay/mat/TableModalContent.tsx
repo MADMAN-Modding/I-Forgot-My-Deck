@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import type { Card, PlayedCard, PlayerData } from "../../types";
 import { CardLightbox } from "../components/CardLightbox";
 import { getCardImage } from "../../ImageHandling";
+import { effectiveLifeTotal } from "../commanderDamage";
 
 function tokenBannerName(card: Card): string | null {
     if (!card.id.startsWith("token-")) return null;
@@ -67,6 +68,7 @@ function PlayerSummaryCard({
     data: PlayerData;
     onClick: () => void;
 }) {
+    const shownLife = effectiveLifeTotal(data.life, data.commander_damage);
     return (
         <div
             className="bg-[#1e1e1e] border border-[#333] rounded-xl overflow-hidden cursor-pointer hover:border-[#888] transition"
@@ -79,7 +81,7 @@ function PlayerSummaryCard({
                     {data.deck?.owner && <p className="text-xs text-[#666]">{data.deck.owner}</p>}
                 </div>
                 <div className="ml-auto text-center">
-                    <p className="text-2xl font-bold">{data.life}</p>
+                    <p className="text-2xl font-bold">{shownLife}</p>
                     <p className="text-xs text-[#888]">life</p>
                 </div>
             </div>
@@ -101,6 +103,7 @@ function PlayerSummaryCard({
 }
 
 function BoardDetail({ data }: { clientId: string; data: PlayerData }) {
+    const shownLife = effectiveLifeTotal(data.life, data.commander_damage);
     const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
     const [imageCache, setImageCache] = useState<Record<string, string>>({});
     const imageCacheRef = useRef<Record<string, string>>({});
@@ -135,7 +138,7 @@ function BoardDetail({ data }: { clientId: string; data: PlayerData }) {
                     {data.deck?.owner && <p className="text-sm text-[#666]">{data.deck.owner}</p>}
                 </div>
                 <div className="ml-auto text-center">
-                    <p className="text-4xl font-bold">{data.life}</p>
+                    <p className="text-4xl font-bold">{shownLife}</p>
                     <p className="text-xs text-[#888]">life</p>
                 </div>
             </div>

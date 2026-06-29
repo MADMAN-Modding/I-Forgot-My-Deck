@@ -5,6 +5,7 @@ import { WSS_URL } from "../constants";
 import { Link } from "react-router-dom";
 import { getCardImage } from "../ImageHandling";
 import { CardLightbox } from "./components/CardLightbox";
+import { commanderDamageEntries, effectiveLifeTotal } from "./commanderDamage";
 // NOTE: adjust this path if MasterTable.tsx does not live alongside the
 // "components" folder used by Mat.tsx — it should point at the same
 // CardLightbox component imported there.
@@ -50,6 +51,8 @@ interface PlayerBoardProps {
 
 function PlayerBoard({ entry, cellWidth, cellHeight, isEnlarged, onToggleEnlarge, onCardClick }: PlayerBoardProps) {
     const { data } = entry;
+    const cmdrEntries = commanderDamageEntries(data.commander_damage, data.commander_damage_labels);
+    const shownLife = effectiveLifeTotal(data.life, data.commander_damage);
     const vp = data.viewport ?? { width: DEFAULT_BF_WIDTH, height: DEFAULT_BF_HEIGHT };
 
     // Leave room at top for the player header bar (40px)
@@ -112,8 +115,16 @@ function PlayerBoard({ entry, cellWidth, cellHeight, isEnlarged, onToggleEnlarge
                     </span>
                 )}
                 <span className="text-white font-bold text-sm flex-shrink-0 ml-auto">
-                    {data.life}♥
+                    {shownLife}♥
                 </span>
+                {cmdrEntries.length > 0 && (
+                    <div className="flex items-center gap-1 text-[10px] flex-shrink min-w-0 overflow-x-auto whitespace-nowrap max-w-[12rem]">
+                        <span className="text-[#d18f8f]">CD</span>
+                        {cmdrEntries.map((entry) => (
+                            <span key={entry.label} className="text-[#fca5a5]">{entry.label}:{entry.amount}</span>
+                        ))}
+                    </div>
+                )}
                 <button
                     type="button"
                     className="flex-shrink-0 text-[#888] hover:text-white text-xs bg-[#222] hover:bg-[#333] rounded px-1.5 py-0.5 leading-none transition"

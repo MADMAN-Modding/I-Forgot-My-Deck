@@ -12,6 +12,7 @@ import { useMenuPosition } from "./useMenuPosition";
 import { shuffleArray } from "./shuffleArray";
 import { useLongPress } from "./useLongPress";
 import { MatMasterView } from "./MatMasterView";
+import { effectiveLifeTotal } from "../commanderDamage";
 
 interface DragState {
     cardIndex: number;
@@ -97,6 +98,7 @@ export function Mat() {
     const [commanderDamage, setCommanderDamage] = useState<number[]>([]);
     const [commanderDamageLabels, setCommanderDamageLabels] = useState<string[]>([]);
     const [revealTopLibrary, setRevealTopLibrary] = useState(false);
+    const shownLife = effectiveLifeTotal(life, commanderDamage);
 
     // UI state
     const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -1580,7 +1582,7 @@ export function Mat() {
                     >
                         -
                     </button>
-                    <span className="text-3xl font-bold w-14 text-center">{life}</span>
+                    <span className="text-3xl font-bold w-14 text-center">{shownLife}</span>
                     <button
                         onClick={() => adjustLife(1)}
                         className="bg-(--main-color) rounded px-2 py-1 text-sm"

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Card, PlayerData, PlayedCard } from "../../types";
 import { CardLightbox } from "../components/CardLightbox";
 import { getCardImage } from "../../ImageHandling";
+import { commanderDamageEntries, effectiveLifeTotal } from "../commanderDamage";
 
 interface MatMasterViewProps {
     lobbyId: string;
@@ -55,6 +56,8 @@ function PlayerBoard({
     onCardClick: (src: string, alt: string) => void;
 }) {
     const { data } = entry;
+    const cmdrEntries = commanderDamageEntries(data.commander_damage, data.commander_damage_labels);
+    const shownLife = effectiveLifeTotal(data.life, data.commander_damage);
     const vp = data.viewport ?? { width: DEFAULT_BF_WIDTH, height: DEFAULT_BF_HEIGHT };
 
     const headerH = 40;
@@ -113,8 +116,16 @@ function PlayerBoard({
                     </span>
                 )}
                 <span className="text-white font-bold text-sm flex-shrink-0 ml-auto">
-                    {data.life}♥
+                    {shownLife}♥
                 </span>
+                {cmdrEntries.length > 0 && (
+                    <div className="flex items-center gap-1 text-[10px] flex-shrink min-w-0 overflow-x-auto whitespace-nowrap max-w-[12rem]">
+                        <span className="text-[#d18f8f]">CD</span>
+                        {cmdrEntries.map((entry) => (
+                            <span key={entry.label} className="text-[#fca5a5]">{entry.label}:{entry.amount}</span>
+                        ))}
+                    </div>
+                )}
                 <button
                     type="button"
                     className="flex-shrink-0 text-[#888] hover:text-white text-xs bg-[#222] hover:bg-[#333] rounded px-1.5 py-0.5 leading-none transition"
