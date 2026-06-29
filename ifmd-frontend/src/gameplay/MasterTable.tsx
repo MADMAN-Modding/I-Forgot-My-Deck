@@ -162,6 +162,8 @@ function PlayerBoard({ entry, cellWidth, cellHeight, isEnlarged, onToggleEnlarge
                 {data.played_cards?.map((pc: PlayedCard, i: number) => {
                     const x = pc.location[0] * scale;
                     const y = pc.location[1] * scale;
+                    const genericCount = pc.counters.find((c) => c.name === "Counter")?.amount ?? 0;
+                    const namedCounters = pc.counters.filter((c) => c.name !== "Counter");
                     return (
                         <div
                             key={i}
@@ -209,10 +211,19 @@ function PlayerBoard({ entry, cellWidth, cellHeight, isEnlarged, onToggleEnlarge
                                     className="absolute bottom-0 right-0 bg-black/80 text-white rounded"
                                     style={{ fontSize: Math.max(8, 10 * scale), padding: "0 2px" }}
                                 >
-                                    {pc.strength_mod > 0 ? "+" : ""}{pc.strength_mod}/{pc.toughness_mod > 0 ? "+" : ""}{pc.toughness_mod}
+                                    {pc.strength_mod > 0 ? "+" : ""}{pc.strength_mod}/
+                                    {pc.toughness_mod > 0 ? "+" : ""}{pc.toughness_mod}
                                 </div>
                             )}
-                            {pc.counters?.length > 0 && (
+                            {genericCount > 0 && (
+                                <div
+                                    className="absolute bottom-0 left-0 bg-black/80 text-white rounded"
+                                    style={{ fontSize: Math.max(8, 10 * scale), padding: "0 2px" }}
+                                >
+                                    {genericCount}
+                                </div>
+                            )}
+                            {namedCounters.length > 0 && (
                                 <div
                                     className="absolute left-0 bg-black/80 text-white rounded"
                                     style={{
@@ -221,7 +232,7 @@ function PlayerBoard({ entry, cellWidth, cellHeight, isEnlarged, onToggleEnlarge
                                         padding: "0 2px",
                                     }}
                                 >
-                                    {pc.counters.map((c) => `${c.amount}${c.name}`).join(" ")}
+                                    {namedCounters.map((c) => `${c.amount} ${c.name}`).join(" ")}
                                 </div>
                             )}
                         </div>
