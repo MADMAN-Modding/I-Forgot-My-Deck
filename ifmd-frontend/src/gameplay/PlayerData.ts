@@ -26,7 +26,17 @@ export async function setupPlayerData(id: string) {
 
     const userDeck: UserDeck = ({id: deck_id, name: deckName, cards: cards, owner: id});
 
-    const playerData: PlayerData = ({hand: hand, played_cards: playedCards, life: life, commander_damage: commanderDamage, deck: userDeck, viewport: {width: 100, height: 100}});
+    const playerData: PlayerData = ({
+        hand: hand,
+        played_cards: playedCards,
+        life: life,
+        commander_damage: commanderDamage,
+        commander_damage_labels: [],
+        deck: userDeck,
+        command_zone: [],
+        revealed_library_top: undefined,
+        viewport: {width: 100, height: 100}
+    });
     
     return playerData;
 }

@@ -110,8 +110,14 @@ pub struct PlayerData {
     pub life: i32,
     /// Vector of all the commander damage dealt to the player
     pub commander_damage: Vec<i32>,
+    /// Labels used for commander damage tracking rows
+    pub commander_damage_labels: Vec<String>,
     /// Data of the deck being used
     pub deck: UserDeck,
+    /// Cards currently in this player's command zone
+    pub command_zone: Vec<PlayedCard>,
+    /// Top card of library when public reveal is enabled
+    pub revealed_library_top: Option<Card>,
     /** Viewport dimensions of the MAT's battlefield, used by master view for scaling */
     pub viewport: ViewPort
 }
@@ -145,7 +151,10 @@ impl PlayerData {
             played_cards,
             life,
             commander_damage,
+            commander_damage_labels: Vec::new(),
             deck,
+            command_zone: Vec::new(),
+            revealed_library_top: None,
             viewport: ViewPort::new()
         }
     }
@@ -158,7 +167,10 @@ impl ClientData for PlayerData {
             played_cards: Vec::new(),
             life: 40,
             commander_damage: Vec::new(),
+            commander_damage_labels: Vec::new(),
             deck: UserDeck::default(),
+            command_zone: Vec::new(),
+            revealed_library_top: None,
             viewport: ViewPort::new()
         }
     }

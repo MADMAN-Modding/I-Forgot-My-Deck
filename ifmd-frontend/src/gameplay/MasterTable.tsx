@@ -14,6 +14,17 @@ interface PlayerEntry {
     data: PlayerData;
 }
 
+function tokenBannerName(card: Card): string | null {
+    if (!card.id.startsWith("token-")) return null;
+    const raw = card.display_name ?? card.name;
+    return raw.replace(/^Token\s*-\s*/i, "");
+}
+
+function tokenFrontStyle(card: Card, showFront = true) {
+    if (!card.id.startsWith("token-") || !showFront) return undefined;
+    return { filter: "brightness(0) invert(1)" };
+}
+
 // Default assumed battlefield size when the MAT doesn't report a viewport
 const DEFAULT_BF_WIDTH = 1200;
 const DEFAULT_BF_HEIGHT = 600;
@@ -123,6 +134,31 @@ function PlayerBoard({ entry, cellWidth, cellHeight, isEnlarged, onToggleEnlarge
                         Empty
                     </span>
                 )}
+                {(data.command_zone?.length ?? 0) > 0 && (
+                    <div className="absolute left-1 top-1 z-20 bg-black/50 rounded p-1">
+                        <div className="text-[10px] text-[#aaa] mb-1">CZ</div>
+                        <div className="flex gap-1">
+                            {data.command_zone?.map((pc, i) => (
+                                <img
+                                    key={`cz-${i}`}
+                                    src={cardImageUrl(pc.card, pc.show_front)}
+                                    alt={pc.card.display_name ?? pc.card.name}
+                                    className="w-8 h-11 object-cover rounded"
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
+                {data.revealed_library_top && (
+                    <div className="absolute right-1 top-1 z-20 bg-black/50 rounded p-1">
+                        <div className="text-[10px] text-[#aaa] mb-1">Top</div>
+                        <img
+                            src={cardImageUrl(data.revealed_library_top)}
+                            alt={data.revealed_library_top.display_name ?? data.revealed_library_top.name}
+                            className="w-8 h-11 object-cover rounded"
+                        />
+                    </div>
+                )}
                 {data.played_cards?.map((pc: PlayedCard, i: number) => {
                     const x = pc.location[0] * scale;
                     const y = pc.location[1] * scale;
@@ -151,10 +187,23 @@ function PlayerBoard({ entry, cellWidth, cellHeight, isEnlarged, onToggleEnlarge
                             <img
                                 src={cardImageUrl(pc.card, pc.show_front)}
                                 alt={pc.card.display_name ?? pc.card.name}
-                                style={{ width: scaledCardW, height: scaledCardH, borderRadius: scaledCardH * 0.07 }}
+                                style={{
+                                    width: scaledCardW,
+                                    height: scaledCardH,
+                                    borderRadius: scaledCardH * 0.07,
+                                    ...(tokenFrontStyle(pc.card, pc.show_front) ?? {}),
+                                }}
                                 className="object-cover shadow"
                                 draggable={false}
                             />
+                            {tokenBannerName(pc.card) && (
+                                <div
+                                    className="absolute top-0 left-0 right-0 bg-black/85 text-white text-center rounded-t"
+                                    style={{ fontSize: Math.max(7, 9 * scale), padding: `${Math.max(1, scale)}px 2px` }}
+                                >
+                                    {tokenBannerName(pc.card)}
+                                </div>
+                            )}
                             {(pc.strength_mod !== 0 || pc.toughness_mod !== 0) && (
                                 <div
                                     className="absolute bottom-0 right-0 bg-black/80 text-white rounded"
@@ -165,8 +214,12 @@ function PlayerBoard({ entry, cellWidth, cellHeight, isEnlarged, onToggleEnlarge
                             )}
                             {pc.counters?.length > 0 && (
                                 <div
-                                    className="absolute top-0 left-0 bg-black/80 text-white rounded"
-                                    style={{ fontSize: Math.max(8, 10 * scale), padding: "0 2px" }}
+                                    className="absolute left-0 bg-black/80 text-white rounded"
+                                    style={{
+                                        top: tokenBannerName(pc.card) ? Math.max(10, 12 * scale) : 0,
+                                        fontSize: Math.max(8, 10 * scale),
+                                        padding: "0 2px",
+                                    }}
                                 >
                                     {pc.counters.map((c) => `${c.amount}${c.name}`).join(" ")}
                                 </div>

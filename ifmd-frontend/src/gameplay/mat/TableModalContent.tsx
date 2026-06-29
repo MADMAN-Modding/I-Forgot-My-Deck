@@ -3,6 +3,17 @@ import type { Card, PlayedCard, PlayerData } from "../../types";
 import { CardLightbox } from "../components/CardLightbox";
 import { getCardImage } from "../../ImageHandling";
 
+function tokenBannerName(card: Card): string | null {
+    if (!card.id.startsWith("token-")) return null;
+    const raw = card.display_name ?? card.name;
+    return raw.replace(/^Token\s*-\s*/i, "");
+}
+
+function tokenFrontStyle(card: Card, showFront = true) {
+    if (!card.id.startsWith("token-") || !showFront) return undefined;
+    return { filter: "brightness(0) invert(1)" };
+}
+
 export function TableModalContent({ players, selfId }: { players: Record<string, PlayerData>; selfId: string }) {
     const [selected, setSelected] = useState<string | null>(null);
 
@@ -76,7 +87,7 @@ function PlayerSummaryCard({
                 <div className="flex gap-2 px-3 py-1 text-xs text-[#aaa] bg-[#242424]">
                     <span>Cmdr:</span>
                     {data.commander_damage.map((d, i) => (
-                        <span key={i}>P{i + 1}: {d}</span>
+                        <span key={i}>{data.commander_damage_labels?.[i] ?? `P${i + 1}`}: {d}</span>
                     ))}
                 </div>
             )}
@@ -134,8 +145,37 @@ function BoardDetail({ data }: { clientId: string; data: PlayerData }) {
                 <div className="flex gap-3 text-sm text-[#aaa] mb-3">
                     <span className="text-[#666]">Cmdr dmg:</span>
                     {data.commander_damage.map((d, i) => (
-                        <span key={i}>P{i + 1}: <span className="text-white">{d}</span></span>
+                        <span key={i}>{data.commander_damage_labels?.[i] ?? `P${i + 1}`}: <span className="text-white">{d}</span></span>
                     ))}
+                </div>
+            )}
+
+            {(data.command_zone?.length ?? 0) > 0 && (
+                <div className="mb-3">
+                    <p className="text-xs text-[#666] mb-1">Command Zone</p>
+                    <div className="flex gap-2 flex-wrap">
+                        {data.command_zone?.map((pc, i) => (
+                            <img
+                                key={`cz-${i}`}
+                                src={cardImageUrl(pc.card, pc.show_front)}
+                                alt={pc.card.display_name ?? pc.card.name}
+                                className="h-20 w-auto rounded shadow"
+                                title={pc.card.display_name ?? pc.card.name}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {data.revealed_library_top && (
+                <div className="mb-3">
+                    <p className="text-xs text-[#666] mb-1">Revealed Top Card</p>
+                    <img
+                        src={cardImageUrl(data.revealed_library_top)}
+                        alt={data.revealed_library_top.display_name ?? data.revealed_library_top.name}
+                        className="h-24 w-auto rounded shadow"
+                        title={data.revealed_library_top.display_name ?? data.revealed_library_top.name}
+                    />
                 </div>
             )}
 
@@ -170,7 +210,13 @@ function BoardDetail({ data }: { clientId: string; data: PlayerData }) {
                                     src={imgSrc}
                                     alt={pc.card.display_name ?? pc.card.name}
                                     className="h-28 w-auto rounded-lg shadow"
+                                    style={tokenFrontStyle(pc.card, pc.show_front)}
                                 />
+                                {tokenBannerName(pc.card) && (
+                                    <div className="absolute top-0 left-0 right-0 w-full bg-black/85 text-white text-[10px] text-center py-1 rounded-t-lg px-1 truncate">
+                                        {tokenBannerName(pc.card)}
+                                    </div>
+                                )}
                                 {(pc.strength_mod !== 0 || pc.toughness_mod !== 0) && (
                                     <div className="absolute bottom-0 right-0 bg-black text-white text-xs rounded px-1">
                                         {pc.strength_mod > 0 ? "+" : ""}{pc.strength_mod}/
@@ -178,7 +224,10 @@ function BoardDetail({ data }: { clientId: string; data: PlayerData }) {
                                     </div>
                                 )}
                                 {pc.counters?.length > 0 && (
-                                    <div className="absolute top-0 left-0 bg-black text-white text-xs rounded px-1">
+                                    <div
+                                        className="absolute left-0 bg-black text-white text-xs rounded px-1"
+                                        style={{ top: tokenBannerName(pc.card) ? "16px" : "0" }}
+                                    >
                                         {pc.counters.map((c) => `${c.amount}${c.name}`).join(" ")}
                                     </div>
                                 )}

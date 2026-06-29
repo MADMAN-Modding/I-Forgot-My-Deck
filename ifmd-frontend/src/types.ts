@@ -80,8 +80,14 @@ export interface PlayerData {
   life: number;
   /** Vector of all the commander damage dealt to the player */
   commander_damage: Array<number>;
+  /** Labels used for commander damage tracking rows */
+  commander_damage_labels: Array<string>;
   /** Data of the deck being used */
   deck: UserDeck;
+  /** Cards currently in this player's command zone */
+  command_zone: Array<PlayedCard>;
+  /** Top card of library when public reveal is enabled */
+  revealed_library_top?: Card;
   /** Viewport dimensions of the MAT's battlefield, used by master view for scaling */
   viewport: ViewPort;
 }
