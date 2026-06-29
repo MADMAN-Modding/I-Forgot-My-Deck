@@ -688,28 +688,27 @@ export function Mat() {
     }
 
     function endHandCardDrag(x: number, y: number) {
-        const drag = handDragRef.current;
-        cleanupHandCardDragListeners();
-        handDragRef.current = null;
-        setHandDragVisual(null);
-        if (!drag) return;
+    const drag = handDragRef.current;
+    cleanupHandCardDragListeners();
+    handDragRef.current = null;
+    setHandDragVisual(null);
+    if (!drag) return;
 
-        if (!drag.moved) {
-            // Treated as a plain click/tap — keep existing auto-position behavior.
-            playCard(drag.cardIndex);
-            return;
-        }
-
-        const bfEl = battlefieldRef.current;
-        if (!bfEl) return;
-        const rect = bfEl.getBoundingClientRect();
-        const overBattlefield =
-            x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-        if (overBattlefield) {
-            playCardAt(drag.cardIndex, x - rect.left, y - rect.top);
-        }
-        // If dropped outside the battlefield, the card simply stays in hand.
+    if (!drag.moved) {
+        // No movement — this is a plain click, handled by onClick (lightbox).
+        return;
     }
+
+    const bfEl = battlefieldRef.current;
+    if (!bfEl) return;
+    const rect = bfEl.getBoundingClientRect();
+    const overBattlefield =
+        x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    if (overBattlefield) {
+        playCardAt(drag.cardIndex, x - rect.left, y - rect.top);
+    }
+    // If dropped outside the battlefield, the card simply stays in hand.
+}
 
     function cleanupHandCardDragListeners() {
         window.removeEventListener("mousemove", handleHandDragMouseMove);
@@ -1343,8 +1342,15 @@ export function Mat() {
                     {hand.map((card, index) => (
                         <div
                             key={`hand-${index}`}
-                            className="shrink-0 cursor-pointer hover:scale-105 hover:-translate-y-2 transition-transform"
-                            title={`Click to play · Right-click for more options`}
+                            className="shrink-0 cursor-pointer hover:scale-150 hover:-translate-y-8 hover:z-50 relative transition-transform duration-150"
+                            title={`Click to enlarge · Right-click for more options`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setLightbox({
+                                    src: cardImageUrl(card),
+                                    alt: card.display_name ?? card.name,
+                                });
+                            }}
                             onMouseDown={(e) => {
                                 if (e.button !== 0) return; // only left-click drags
                                 startHandCardDrag(index, e.clientX, e.clientY);
@@ -1379,7 +1385,7 @@ export function Mat() {
                     )}
                 </div>
             </div>
-            
+
             {/* ── Dragging hand card ghost ── */}
             {handDragVisual && hand[handDragVisual.index] && (
                 <img
