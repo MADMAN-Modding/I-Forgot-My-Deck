@@ -4,6 +4,10 @@ import type { PlayerData, PlayedCard, Card } from "../types";
 import { WSS_URL } from "../constants";
 import { Link } from "react-router-dom";
 import { getCardImage } from "../ImageHandling";
+import { CardLightbox } from "./components/CardLightbox";
+// NOTE: adjust this path if MasterTable.tsx does not live alongside the
+// "components" folder used by Mat.tsx — it should point at the same
+// CardLightbox component imported there.
 
 interface PlayerEntry {
     clientId: string;
@@ -28,9 +32,12 @@ interface PlayerBoardProps {
     entry: PlayerEntry;
     cellWidth: number;
     cellHeight: number;
+    isEnlarged: boolean;
+    onToggleEnlarge: (clientId: string) => void;
+    onCardClick: (src: string, alt: string) => void;
 }
 
-function PlayerBoard({ entry, cellWidth, cellHeight }: PlayerBoardProps) {
+function PlayerBoard({ entry, cellWidth, cellHeight, isEnlarged, onToggleEnlarge, onCardClick }: PlayerBoardProps) {
     const { data } = entry;
     const vp = data.viewport ?? { width: DEFAULT_BF_WIDTH, height: DEFAULT_BF_HEIGHT };
 
@@ -73,8 +80,12 @@ function PlayerBoard({ entry, cellWidth, cellHeight }: PlayerBoardProps) {
 
     return (
         <div
-            className="flex flex-col bg-[#0f1f0f] border border-[#2a4a2a] overflow-hidden"
+            className={`flex flex-col bg-[#0f1f0f] border overflow-hidden cursor-pointer transition-[border-color] ${
+                isEnlarged ? "border-[#4a8a4a]" : "border-[#2a4a2a] hover:border-[#3a6a3a]"
+            }`}
             style={{ width: cellWidth, height: cellHeight, flexShrink: 0 }}
+            onClick={() => onToggleEnlarge(entry.clientId)}
+            title={isEnlarged ? "Click to restore grid view" : "Click to enlarge"}
         >
             {/* Header */}
             <div
@@ -92,6 +103,17 @@ function PlayerBoard({ entry, cellWidth, cellHeight }: PlayerBoardProps) {
                 <span className="text-white font-bold text-sm flex-shrink-0 ml-auto">
                     {data.life}♥
                 </span>
+                <button
+                    type="button"
+                    className="flex-shrink-0 text-[#888] hover:text-white text-xs bg-[#222] hover:bg-[#333] rounded px-1.5 py-0.5 leading-none transition"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleEnlarge(entry.clientId);
+                    }}
+                    aria-label={isEnlarged ? "Shrink board" : "Enlarge board"}
+                >
+                    {isEnlarged ? "⤡" : "⤢"}
+                </button>
             </div>
 
             {/* Battlefield canvas */}
@@ -107,7 +129,7 @@ function PlayerBoard({ entry, cellWidth, cellHeight }: PlayerBoardProps) {
                     return (
                         <div
                             key={i}
-                            className="absolute"
+                            className="absolute cursor-pointer"
                             style={{
                                 left: x,
                                 top: y,
@@ -117,6 +139,14 @@ function PlayerBoard({ entry, cellWidth, cellHeight }: PlayerBoardProps) {
                                 transformOrigin: "center",
                             }}
                             title={pc.card.display_name ?? pc.card.name}
+                            onClick={(e) => {
+                                // Stop the click from also toggling the board's enlarge state
+                                e.stopPropagation();
+                                onCardClick(
+                                    cardImageUrl(pc.card, pc.show_front),
+                                    pc.card.display_name ?? pc.card.name,
+                                );
+                            }}
                         >
                             <img
                                 src={cardImageUrl(pc.card, pc.show_front)}
@@ -153,6 +183,8 @@ export function MasterTable() {
     const { lobbyId } = useParams<{ lobbyId: string }>();
     const [players, setPlayers] = useState<Record<string, PlayerEntry>>({});
     const [connected, setConnected] = useState(false);
+    const [enlargedId, setEnlargedId] = useState<string | null>(null);
+    const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
     const wsRef = useRef<WebSocket | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerSize, setContainerSize] = useState({ width: window.innerWidth, height: window.innerHeight });
@@ -199,6 +231,31 @@ export function MasterTable() {
         return () => ws.close();
     }, [lobbyId]);
 
+    // If the enlarged player disconnects/leaves, fall back to grid view
+    useEffect(() => {
+        if (enlargedId && !players[enlargedId]) {
+            setEnlargedId(null);
+        }
+    }, [players, enlargedId]);
+
+    // Escape key restores the grid view
+    useEffect(() => {
+        if (!enlargedId) return;
+        function onKeyDown(e: KeyboardEvent) {
+            if (e.key === "Escape") setEnlargedId(null);
+        }
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [enlargedId]);
+
+    function handleToggleEnlarge(clientId: string) {
+        setEnlargedId((prev) => (prev === clientId ? null : clientId));
+    }
+
+    function handleCardClick(src: string, alt: string) {
+        setLightbox({ src, alt });
+    }
+
     const playerList = Object.values(players);
     const n = playerList.length;
     const [cols, rows] = computeGrid(n);
@@ -207,6 +264,10 @@ export function MasterTable() {
     const headerBarH = 44; // top bar height in px
     const availW = containerSize.width;
     const availH = Math.max(100, containerSize.height - headerBarH);
+
+    const enlargedEntry = enlargedId ? players[enlargedId] : null;
+
+    // Normal grid cell sizing
     const cellW = Math.floor(availW / cols);
     const cellH = Math.floor(availH / rows);
 
@@ -223,6 +284,15 @@ export function MasterTable() {
                 <h1 className="text-base font-bold">
                     Master View — <span className="font-mono text-sm">{lobbyId}</span>
                 </h1>
+                {enlargedEntry && (
+                    <button
+                        type="button"
+                        onClick={() => setEnlargedId(null)}
+                        className="bg-[#2a4a2a] hover:bg-[#3a5a3a] rounded-lg px-3 py-1 text-sm transition"
+                    >
+                        ⤡ Back to grid
+                    </button>
+                )}
                 <span
                     className={`ml-auto text-xs px-2 py-1 rounded ${connected ? "bg-green-800 text-green-200" : "bg-red-900 text-red-200"
                         }`}
@@ -232,27 +302,56 @@ export function MasterTable() {
                 <span className="text-[#666] text-xs">{n} player{n !== 1 ? "s" : ""}</span>
             </div>
 
-            {/* Grid */}
-            <div
-                ref={containerRef}
-                className="flex-1 overflow-hidden"
-                style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, ${cellW}px)`, gridTemplateRows: `repeat(${rows}, ${cellH}px)` }}
-            >
-                {playerList.length === 0 ? (
-                    <div className="col-span-full row-span-full flex items-center justify-center text-[#444] text-xl">
-                        Waiting for players to join…
-                    </div>
-                ) : (
-                    playerList.map(({ clientId, data }) => (
-                        <PlayerBoard
-                            key={clientId}
-                            entry={{ clientId, data }}
-                            cellWidth={cellW}
-                            cellHeight={cellH}
-                        />
-                    ))
-                )}
-            </div>
+            {/* Grid or enlarged single view */}
+            {enlargedEntry ? (
+                <div
+                    ref={containerRef}
+                    className="flex-1 overflow-hidden flex items-center justify-center"
+                >
+                    <PlayerBoard
+                        key={enlargedEntry.clientId}
+                        entry={enlargedEntry}
+                        cellWidth={availW}
+                        cellHeight={availH}
+                        isEnlarged
+                        onToggleEnlarge={handleToggleEnlarge}
+                        onCardClick={handleCardClick}
+                    />
+                </div>
+            ) : (
+                <div
+                    ref={containerRef}
+                    className="flex-1 overflow-hidden"
+                    style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, ${cellW}px)`, gridTemplateRows: `repeat(${rows}, ${cellH}px)` }}
+                >
+                    {playerList.length === 0 ? (
+                        <div className="col-span-full row-span-full flex items-center justify-center text-[#444] text-xl">
+                            Waiting for players to join…
+                        </div>
+                    ) : (
+                        playerList.map(({ clientId, data }) => (
+                            <PlayerBoard
+                                key={clientId}
+                                entry={{ clientId, data }}
+                                cellWidth={cellW}
+                                cellHeight={cellH}
+                                isEnlarged={false}
+                                onToggleEnlarge={handleToggleEnlarge}
+                                onCardClick={handleCardClick}
+                            />
+                        ))
+                    )}
+                </div>
+            )}
+
+            {/* ── Card lightbox: click any card to enlarge it fullscreen ── */}
+            {lightbox && (
+                <CardLightbox
+                    src={lightbox.src}
+                    alt={lightbox.alt}
+                    onClose={() => setLightbox(null)}
+                />
+            )}
         </div>
     );
 }
