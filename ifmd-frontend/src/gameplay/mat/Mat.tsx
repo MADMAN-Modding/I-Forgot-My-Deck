@@ -10,8 +10,8 @@ import { Link } from "react-router-dom";
 import { getCardImage } from "../../ImageHandling";
 import { useMenuPosition } from "./useMenuPosition";
 import { shuffleArray } from "./shuffleArray";
-import { TableModalContent } from "./TableModalContent";
 import { useLongPress } from "./useLongPress";
+import { MatMasterView } from "./MatMasterView";
 
 interface DragState {
     cardIndex: number;
@@ -78,6 +78,7 @@ export function Mat() {
     const { lobbyId } = useParams<{ lobbyId: string }>();
     const navigate = useNavigate();
     const [phase, setPhase] = useState<"deck-select" | "playing">("deck-select");
+    const [checkingRejoin, setCheckingRejoin] = useState(true);
     const [loading, setLoading] = useState(false);
 
     // Deck selection
@@ -123,7 +124,7 @@ export function Mat() {
     });
     const [showGraveyard, setShowGraveyard] = useState(false);
     const [showExile, setShowExile] = useState(false);
-    const [showTableModal, setShowTableModal] = useState(false);
+    const [showMasterView, setShowMasterView] = useState(false);
     const [lobbyCopied, setLobbyCopied] = useState(false);
     const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
     const [showTokenModal, setShowTokenModal] = useState(false);
@@ -172,6 +173,7 @@ export function Mat() {
     const commandZonePanelDropRef = useRef<HTMLDivElement>(null);
     const zoneDragRef = useRef<ZoneDragState | null>(null);
     const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const rejoinCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Synced refs for sending state from event handlers
     const handRef = useRef<Card[]>([]);
@@ -250,11 +252,16 @@ export function Mat() {
             wsRef.current?.close();
             if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
             if (handHoverHideTimeoutRef.current) clearTimeout(handHoverHideTimeoutRef.current);
+            if (rejoinCheckTimeoutRef.current) clearTimeout(rejoinCheckTimeoutRef.current);
             cleanupBattlefieldDragListeners();
             cleanupHandCardDragListeners();
             cleanupZoneCardDragListeners();
         };
     }, []);
+
+    useEffect(() => {
+        connectMatSocket();
+    }, [lobbyId]);
 
     useEffect(() => {
         const opponents = Object.entries(players).filter(([id]) => id !== selfId);
@@ -313,6 +320,123 @@ export function Mat() {
             imageCacheRef.current[key] = url;
             setImageCache((prev) => ({ ...prev, [key]: url }));
         });
+    }
+
+    function setupSyncInterval(deckNameOverride?: string) {
+        if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
+        syncIntervalRef.current = setInterval(() => {
+            const nameToSend = deckNameOverride ?? (deckNameRef.current || deckName);
+            sendState(handRef.current, bfDataRef.current, lifeRef.current, cmdDmgRef.current, nameToSend);
+            sendSaveState();
+        }, 5000);
+    }
+
+    function handleMatSocketMessage(ws: WebSocket, rawData: string) {
+        if (rawData === "MAT") return;
+        try {
+            const json = JSON.parse(rawData);
+            if (json.type === "rejected") {
+                ws.close();
+                navigate("/lobby");
+                return;
+            }
+
+            if (json.type === "state_restore" && json.payload) {
+                // Restore previously saved game state after reconnect.
+                const p = json.payload;
+                const newLib: Card[] = p.library ?? [];
+                const newHand: Card[] = p.hand ?? [];
+                const newBf: PlayedCard[] = p.battlefield ?? [];
+                const newCommandZone: PlayedCard[] = p.command_zone ?? [];
+                const newGy: Card[] = p.graveyard ?? [];
+                const newEx: Card[] = p.exile ?? [];
+                const newLife: number = p.life ?? 40;
+                const newCmdDmg: number[] = p.commander_damage ?? [];
+                const newCmdDmgLabels: string[] = p.commander_damage_labels ?? [];
+                const newRevealTopLibrary: boolean = p.reveal_top_library ?? false;
+                const restoredDeckName: string = p.deck_name ?? "";
+
+                setLibrary(newLib);
+                setHand(newHand);
+                setBattlefield(newBf);
+                setCommandZone(newCommandZone);
+                setGraveyard(newGy);
+                setExile(newEx);
+                setLife(newLife);
+                setCommanderDamage(newCmdDmg);
+                setCommanderDamageLabels(newCmdDmgLabels);
+                setRevealTopLibrary(newRevealTopLibrary);
+                setDeckName(restoredDeckName);
+
+                handRef.current = newHand;
+                lifeRef.current = newLife;
+                cmdDmgRef.current = newCmdDmg;
+                bfDataRef.current = newBf;
+                cmdDmgLabelsRef.current = newCmdDmgLabels;
+                commandZoneRef.current = newCommandZone;
+                revealTopLibraryRef.current = newRevealTopLibrary;
+                libraryRef.current = newLib;
+                graveyardRef.current = newGy;
+                exileRef.current = newEx;
+                deckNameRef.current = restoredDeckName;
+
+                if (p.commander_name) commanderNameRef.current = p.commander_name;
+
+                setPhase("playing");
+                setCheckingRejoin(false);
+                if (rejoinCheckTimeoutRef.current) {
+                    clearTimeout(rejoinCheckTimeoutRef.current);
+                    rejoinCheckTimeoutRef.current = null;
+                }
+                setupSyncInterval(restoredDeckName);
+                return;
+            }
+
+            if (json.type === "data" && json.clientId && json.payload) {
+                setPlayers((prev) => ({ ...prev, [json.clientId]: json.payload }));
+                return;
+            }
+
+            if (json.type === "table_joined") {
+                // A table/master viewer just connected — immediately re-broadcast our state.
+                const currentDeckName = deckNameRef.current || deckName;
+                sendState(handRef.current, bfDataRef.current, lifeRef.current, cmdDmgRef.current, currentDeckName);
+            }
+        } catch {
+            // Ignore non-JSON messages.
+        }
+    }
+
+    function connectMatSocket() {
+        const existing = wsRef.current;
+        if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
+            return existing;
+        }
+
+        const token = getToken() ?? "";
+        if (!token || !lobbyId) {
+            setCheckingRejoin(false);
+            return null;
+        }
+
+        const ws = new WebSocket(`wss://${WSS_URL}/ws/join/${lobbyId}/MAT/${encodeURIComponent(token)}`);
+        ws.onopen = () => {
+            if (rejoinCheckTimeoutRef.current) clearTimeout(rejoinCheckTimeoutRef.current);
+            rejoinCheckTimeoutRef.current = setTimeout(() => {
+                setCheckingRejoin(false);
+                rejoinCheckTimeoutRef.current = null;
+            }, 1200);
+        };
+        ws.onmessage = (evt) => handleMatSocketMessage(ws, evt.data);
+        ws.onclose = () => {
+            if (rejoinCheckTimeoutRef.current) {
+                clearTimeout(rejoinCheckTimeoutRef.current);
+                rejoinCheckTimeoutRef.current = null;
+            }
+            setCheckingRejoin(false);
+        };
+        wsRef.current = ws;
+        return ws;
     }
 
     async function startGame(selectedId: string, selectedName: string) {
@@ -376,63 +500,9 @@ export function Mat() {
             exileRef.current = [];
             deckNameRef.current = selectedName;
 
-            const token = getToken() ?? "";
-            const ws = new WebSocket(`wss://${WSS_URL}/ws/join/${lobbyId}/MAT/${encodeURIComponent(token)}`);
-            ws.onmessage = (evt) => {
-                if (evt.data === "MAT") return;
-                try {
-                    const json = JSON.parse(evt.data);
-                    if (json.type === "rejected") {
-                        // Server rejected this connection — not in the allowed player list
-                        ws.close();
-                        navigate("/lobby");
-                        return;
-                    } else if (json.type === "state_restore" && json.payload) {
-                        // Restore previously saved game state after reconnect
-                        const p = json.payload;
-                        const newLib: Card[] = p.library ?? [];
-                        const newHand: Card[] = p.hand ?? [];
-                        const newBf: PlayedCard[] = p.battlefield ?? [];
-                        const newCommandZone: PlayedCard[] = p.command_zone ?? [];
-                        const newGy: Card[] = p.graveyard ?? [];
-                        const newEx: Card[] = p.exile ?? [];
-                        const newLife: number = p.life ?? 40;
-                        const newCmdDmg: number[] = p.commander_damage ?? [];
-                        const newCmdDmgLabels: string[] = p.commander_damage_labels ?? [];
-                        const newRevealTopLibrary: boolean = p.reveal_top_library ?? false;
-                        setLibrary(newLib); setHand(newHand); setBattlefield(newBf);
-                        setCommandZone(newCommandZone);
-                        setGraveyard(newGy); setExile(newEx); setLife(newLife);
-                        setCommanderDamage(newCmdDmg);
-                        setCommanderDamageLabels(newCmdDmgLabels);
-                        setRevealTopLibrary(newRevealTopLibrary);
-                        handRef.current = newHand; lifeRef.current = newLife;
-                        cmdDmgRef.current = newCmdDmg; bfDataRef.current = newBf;
-                        cmdDmgLabelsRef.current = newCmdDmgLabels;
-                        commandZoneRef.current = newCommandZone;
-                        revealTopLibraryRef.current = newRevealTopLibrary;
-                        libraryRef.current = newLib; graveyardRef.current = newGy;
-                        exileRef.current = newEx;
-                        if (p.commander_name) commanderNameRef.current = p.commander_name;
-                        if (p.deck_name) deckNameRef.current = p.deck_name;
-                    } else if (json.type === "data" && json.clientId && json.payload) {
-                        setPlayers((prev) => ({ ...prev, [json.clientId]: json.payload }));
-                    } else if (json.type === "table_joined") {
-                        // A TABLE viewer just connected — immediately re-broadcast our state
-                        sendState(handRef.current, bfDataRef.current, lifeRef.current, cmdDmgRef.current, selectedName);
-                    }
-                } catch {
-                    // ignore non-JSON messages
-                }
-            };
-            wsRef.current = ws;
-
-            // Re-broadcast state every 5 s so late-joining TABLE clients get updates
-            if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
-            syncIntervalRef.current = setInterval(() => {
-                sendState(handRef.current, bfDataRef.current, lifeRef.current, cmdDmgRef.current, selectedName);
-                sendSaveState();
-            }, 5000);
+            connectMatSocket();
+            setupSyncInterval(selectedName);
+            setCheckingRejoin(false);
 
             setPhase("playing");
         } catch (err) {
@@ -1404,6 +1474,18 @@ export function Mat() {
     // ── Render: deck selection ────────────────────────────────────────────────
 
     if (phase === "deck-select") {
+        if (checkingRejoin) {
+            return (
+                <div className="text-white text-center mt-10">
+                    <h1 className="text-3xl font-bold mb-3">Rejoining Game...</h1>
+                    <p className="text-[#aaa] mb-4">
+                        Lobby: <span className="text-white font-mono">{lobbyId}</span>
+                    </p>
+                    <p className="text-[#888]">Checking for a saved session.</p>
+                </div>
+            );
+        }
+
         return (
             <div className="text-white text-center mt-10">
                 <h1 className="text-4xl font-bold mb-3">Select Your Deck</h1>
@@ -1476,10 +1558,13 @@ export function Mat() {
                     Deck: <span className="text-white">{deckName}</span>
                 </span>
                 <button
-                    onClick={(e) => { e.stopPropagation(); setShowTableModal(true); }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setShowMasterView(true);
+                    }}
                     className="bg-[#444] rounded-lg px-3 py-1 text-sm hover:bg-[#555] transition"
                 >
-                    Show Table ({Object.keys(players).length != 0 ? Object.keys(players).length - 1 : 0})
+                    Master View ({Object.keys(players).length !== 0 ? Object.keys(players).length : 1})
                 </button>
                 <div className="flex items-center gap-2 ml-auto">
                     <span className="text-sm">Life:</span>
@@ -2501,28 +2586,31 @@ export function Mat() {
                 />
             )}
 
-            {/* ── Table view modal ── */}
-            {showTableModal && (
-                <div
-                    className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center"
-                    onClick={() => setShowTableModal(false)}
-                >
-                    <div
-                        className="bg-[#111] rounded-2xl p-5 w-11/12 max-w-5xl max-h-[80vh] overflow-y-auto"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-bold">Table View</h2>
-                            <button
-                                onClick={() => setShowTableModal(false)}
-                                className="text-[#888] hover:text-white text-2xl leading-none"
-                            >
-                                ×
-                            </button>
-                        </div>
-                        <TableModalContent players={players} selfId={selfId} />
-                    </div>
-                </div>
+            {showMasterView && (
+                <MatMasterView
+                    lobbyId={lobbyId ?? ""}
+                    players={players}
+                    selfId={selfId}
+                    selfData={{
+                        hand: { cards: hand },
+                        played_cards: battlefield,
+                        life,
+                        commander_damage: commanderDamage,
+                        commander_damage_labels: commanderDamageLabels,
+                        deck: {
+                            id: "",
+                            owner: displayNameRef.current,
+                            name: deckName,
+                            cards: commanderNameRef.current,
+                        },
+                        command_zone: commandZone,
+                        revealed_library_top: revealTopLibrary ? library[0] : undefined,
+                        viewport: battlefieldRef.current
+                            ? { width: battlefieldRef.current.clientWidth, height: battlefieldRef.current.clientHeight }
+                            : { width: 100, height: 100 },
+                    }}
+                    onClose={() => setShowMasterView(false)}
+                />
             )}
         </div>
     );

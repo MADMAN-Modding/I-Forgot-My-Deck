@@ -10,7 +10,6 @@ import Auth from "./account/AuthAccount.tsx";
 import CreateDeck from "./decks/CreateDeck.tsx";
 import { ViewUserDecks, ViewDeckFromID } from "./decks/ViewDeck.tsx";
 import { Mat } from "./gameplay/mat/Mat.tsx";
-import { Table } from "./gameplay/Table.tsx";
 import { MasterTable } from "./gameplay/MasterTable.tsx";
 import Lobby from "./lobby/Lobby.tsx";
 import Waiting from "./lobby/Waiting.tsx";
@@ -33,7 +32,7 @@ function App() {
                     <Route path="/lobby" element={<Lobby/>} />
                     <Route path="/waiting/:lobbyId" element={<Waiting/>} />
                     <Route path="/mat/:lobbyId" element={<Mat/>} />
-                    <Route path="/table/:lobbyId" element={<Table/>} />
+                    <Route path="/table/:lobbyId" element={<MasterTable/>} />
                     <Route path="/master/:lobbyId" element={<MasterTable/>} />
                 </Routes>
             </Router>

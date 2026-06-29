@@ -39,11 +39,6 @@ function Lobby() {
         if (id) navigate(`/waiting/${id}`);
     }
 
-    function joinAsTable() {
-        const id = lobbyId.trim();
-        if (id) navigate(`/table/${id}`);
-    }
-
     function joinAsMaster() {
         const id = lobbyId.trim();
         if (id) navigate(`/master/${id}`);
@@ -97,19 +92,12 @@ function Lobby() {
                             Join as Player
                         </button>
                         <button
-                            onClick={joinAsTable}
-                            disabled={!lobbyId.trim()}
-                            className="bg-[#555] rounded-xl px-5 py-3 hover:opacity-80 transition disabled:opacity-40"
-                        >
-                            Watch (Table View)
-                        </button>
-                        <button
                             onClick={joinAsMaster}
                             disabled={!lobbyId.trim()}
                             className="bg-[#2a3a2a] rounded-xl px-5 py-3 hover:opacity-80 transition disabled:opacity-40"
                             title="Shows all player boards scaled down on one screen"
                         >
-                            Master View
+                            Table View
                         </button>
                     </div>
                 </div>

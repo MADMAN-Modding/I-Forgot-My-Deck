@@ -350,7 +350,7 @@ export function MasterTable() {
                     className={`ml-auto text-xs px-2 py-1 rounded ${connected ? "bg-green-800 text-green-200" : "bg-red-900 text-red-200"
                         }`}
                 >
-                    {connected ? "Live" : "Disconnected"}
+                    {connected ? "Connected" : "Disconnected"}
                 </span>
                 <span className="text-[#666] text-xs">{n} player{n !== 1 ? "s" : ""}</span>
             </div>
