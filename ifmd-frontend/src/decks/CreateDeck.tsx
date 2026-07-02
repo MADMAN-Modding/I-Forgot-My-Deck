@@ -162,7 +162,7 @@ function CreateDeck() {
 
   return (
     <>
-      <NavBar />
+      <NavBar valid={true} />
       <div>
         <h1 className="text-white text-center font-bold mt-4 text-4xl">Create your deck here!</h1>
 

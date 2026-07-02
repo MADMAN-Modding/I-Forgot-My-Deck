@@ -46,7 +46,7 @@ function Lobby() {
 
     return (
         <>
-            <NavBar />
+            <NavBar valid={true}/>
             <div className="text-white text-center mt-16">
 
 
