@@ -7,6 +7,8 @@ import { Link } from "react-router-dom";
 import { WSS_URL } from "../constants";
 import { useCardImages } from "../hooks/useCardImages";
 import NavBar from "../home/NavBar";
+import { useCommanderImages } from "../hooks/useCommanderImages";
+import { deleteDeck } from "./DeleteDeck";
 
 interface ViewDeckProps {
     deck: Deck | null;
@@ -19,7 +21,7 @@ let deckPos = location.indexOf("deck");
 
 location = location.substring(0, deckPos);
 
-export function ViewDeck({ deck, showNav = true}: ViewDeckProps) {
+export function ViewDeck({ deck, showNav = true }: ViewDeckProps) {
     if (!deck) {
         return <p className="text-white text-center mt-5 bg-[#333333] w-fit m-auto p-2 rounded-2xl">No deck loaded yet</p>;
     }
@@ -37,12 +39,12 @@ export function ViewDeck({ deck, showNav = true}: ViewDeckProps) {
                     <>
                         {/* First card in its own row centered */}
                         <div className="card text-center ml-auto mr-auto mt-5" key={deck?.cards[0].id}>
-                            <div className="bg-black p-3 rounded-2xl">
-                                <h4>
+                            <div className="bg-black p-3 rounded-2xl overflow-hidden">
+                                <h4 className="mb-2">
                                     <b>{deck?.cards[0].display_name ?? deck?.cards[0].name}</b>
                                 </h4>
                                 <img
-                                    className="w-75 rounded-2xl"
+                                    className="w-75 rounded-xl mx-auto"
                                     src={cardImages[deck?.cards[0].id]}
                                     alt={"Image of: " + (deck?.cards[0].display_name ?? deck?.cards[0].name)}
                                 />
@@ -72,7 +74,10 @@ export function ViewDeck({ deck, showNav = true}: ViewDeckProps) {
 
 export function ViewUserDecks() {
     // State for storing the user decks
-    const [deckIDs, setDeckIDs] = useState<[string] | null>(null);
+    const [deckIDs, setDeckIDs] = useState<Array<[string, string]> | null>(null);
+
+
+    let commanderImages = useCommanderImages(deckIDs?.map(c => c[0]) ?? []);
 
     async function getDecks() {
         try {
@@ -101,19 +106,59 @@ export function ViewUserDecks() {
         getDecks();
     }, []);
 
-    const decks = deckIDs?.map((deck) => <Link to={`/deck/view/${deck[0]}`} key={`${deck[0]}`}><p className="text-white bg-black rounded-2xl pl-3 pr-3 mb-2 hover:cursor-pointer" key={deck[0]}>{deck[1]}</p></Link>)
+    async function handleDeleteDeck(deckID: string, deckName: string) {
+        const confirmed = window.confirm(`Delete deck "${deckName}"?`);
+
+        if (!confirmed) {
+            return;
+        }
+
+        const message = await deleteDeck(deckID);
+
+        if (message.toLowerCase().includes("deleted")) {
+            setDeckIDs((currentDecks) => currentDecks?.filter(([id]) => id !== deckID) ?? null);
+        } else {
+            window.alert(message);
+        }
+    }
+
+    const decks = deckIDs?.map((deck) => (
+        <div key={deck[0]} className="pb-2">
+            <Link to={`/deck/view/${deck[0]}`} className="group relative flex flex-col items-start overflow-hidden rounded-3xl shadow-lg">
+                <img
+                    src={commanderImages[deck[0]]}
+                    className="w-40 object-cover rounded-3xl"
+                    alt={`${deck[1]} commander`}
+                />
+                <div className="absolute inset-x-2 bottom-2 rounded-full border border-white/40 bg-black/60 px-3 py-2 text-left backdrop-blur-[1px] transition-all duration-200 group-hover:bottom-9">
+                    <p className="text-sm font-semibold text-white">{deck[1]}</p>
+                </div>
+                <button
+                    type="button"
+                    onClick={(event) => {
+                        event.preventDefault();
+                        void handleDeleteDeck(deck[0], deck[1]);
+                    }}
+                    aria-label={`Delete ${deck[1]}`}
+                    className="absolute left-2 bottom-2 z-10 hidden rounded-md bg-black/70 px-2 py-1 group-hover:block"
+                >
+                    <img src="delete.png" className="w-4" alt="Delete deck" />
+                </button>
+            </Link>
+        </div>
+    ));
 
     return (
         <>
-        <NavBar/>
+            <NavBar />
             <h1 className="text-white text-center text-5xl mt-5">Your Decks</h1>
 
-            <div className="m-auto mt-70 bg-[#333333] w-fit p-3 align-middle rounded-2xl">
+            <div className="m-auto mt-70 bg-[#333333] w-fit p-3 align-middle rounded-2xl justify-center flex flex-wrap grid-cols-3 gap-2">
                 {
-                    (decks?.length ?? 0) > 0 ? decks : <p className="text-center text-white">No Decks Registered to your Account<br/>Register one <Link to={"/deck/create"}>Here</Link></p>
+                    (decks?.length ?? 0) > 0 ? decks : <p className="text-center text-white">No Decks Registered to your Account<br />Register one <Link to={"/deck/create"}>Here</Link></p>
                 }
             </div>
-aADde        </>
+        </>
     )
 }
 

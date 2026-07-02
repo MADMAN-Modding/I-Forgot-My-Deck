@@ -1,7 +1,7 @@
 import { getToken } from "./account/AccountManagement";
 import { WSS_URL } from "./constants";
 
-export async function getCardImage(id: string, front = true): Promise<string> {
+export async function getCardImage(id: string, front = true, commanderCall = false): Promise<string> {
     let base64: string = "";
     const token = getToken();
 
@@ -11,7 +11,12 @@ export async function getCardImage(id: string, front = true): Promise<string> {
     }
 
     try {
-        const response = await fetch(`https://${WSS_URL}/api/card/img/${encodeURIComponent(id)}/${encodeURIComponent(front)}/${encodeURIComponent(token)}`)
+        let response;
+        if (!commanderCall) {
+            response = await fetch(`https://${WSS_URL}/api/card/img/${encodeURIComponent(id)}/${encodeURIComponent(front)}/${encodeURIComponent(token)}`)
+        } else {
+            response = await fetch(`https://${WSS_URL}/api/decks/commander/get/img/${encodeURIComponent(id)}/${encodeURIComponent(token)}`)
+        }
 
         if (response.ok) {
             base64 = await response.text()

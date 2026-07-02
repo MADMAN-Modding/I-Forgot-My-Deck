@@ -533,7 +533,7 @@ export function Mat() {
             commander_damage: currentCmdDmg,
             commander_damage_labels: cmdDmgLabelsRef.current,
             // Strip deck ID and owner — other clients should never receive them
-            deck: { id: "", name: currentDeckName, cards: commanderNameRef.current, owner: displayNameRef.current },
+            deck: { id: "", name: currentDeckName, cards: commanderNameRef.current, owner: displayNameRef.current, commander: commanderNameRef.current },
             command_zone: commandZoneRef.current,
             revealed_library_top: revealTopLibraryRef.current ? libraryRef.current[0] : undefined,
             viewport
@@ -2604,6 +2604,7 @@ export function Mat() {
                             owner: displayNameRef.current,
                             name: deckName,
                             cards: commanderNameRef.current,
+                            commander: commanderNameRef.current,
                         },
                         command_zone: commandZone,
                         revealed_library_top: revealTopLibrary ? library[0] : undefined,

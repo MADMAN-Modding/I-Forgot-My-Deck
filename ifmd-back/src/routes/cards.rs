@@ -71,6 +71,10 @@ pub async fn get_card_image(
         return Err((StatusCode::BAD_REQUEST, "Invalid Token".to_string()));
     }
 
+    get_card_image_base64(&id, front).await
+}
+
+pub async fn get_card_image_base64(id: &str, front: bool) -> Result<(StatusCode, String), (StatusCode, String)> {
     let path = format!("{}/{}", get_data_dir(), cache::build_path(&id, true, front).await);
 
     let read = match fs::read(path).await {
@@ -78,7 +82,5 @@ pub async fn get_card_image(
         Err(_) => return Err((StatusCode::INTERNAL_SERVER_ERROR, "Error Locating Card".to_string()))
     }; 
 
-    let encoded_image = STANDARD.encode(read);
-
-    Ok((StatusCode::OK, encoded_image))
+    Ok((StatusCode::OK, STANDARD.encode(read)))
 }

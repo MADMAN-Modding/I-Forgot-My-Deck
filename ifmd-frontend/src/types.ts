@@ -57,6 +57,8 @@ export interface UserDeck {
   name: string;
   /** Cards in the deck {id: \"\", count: 0} */
   cards: string;
+  /** ID of the commander */
+  commander: string;
 }
 
 export interface Client<T> {

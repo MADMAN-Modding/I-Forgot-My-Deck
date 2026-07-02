@@ -24,7 +24,7 @@ export async function setupPlayerData(id: string) {
 
     const deckName = "Reality Chip"
 
-    const userDeck: UserDeck = ({id: deck_id, name: deckName, cards: cards, owner: id});
+    const userDeck: UserDeck = ({id: deck_id, name: deckName, cards: cards, owner: id, commander: ""});
 
     const playerData: PlayerData = ({
         hand: hand,

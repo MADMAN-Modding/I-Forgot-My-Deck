@@ -1,14 +1,9 @@
 use axum::{Router, routing::get};
 use axum_server::tls_rustls::RustlsConfig;
 use ifmd_back::{
-    constants, database,
-    routes::{
-        accounts::{auth_account, make_account, token_auth, verify_account},
-        cards::{get_card_by_exact_name, get_card_image},
-        decks::{add_deck, delete_deck, get_deck_list, get_user_decks},
-        lobby::{create_lobby, ws_handler, ws_handler_auth, ws_waiting_handler},
-    },
-    state,
+    constants, database, routes::{
+        accounts::{auth_account, make_account, token_auth, verify_account}, cards::{get_card_by_exact_name, get_card_image}, decks::{add_deck, delete_deck, get_commander_img_from_deck_id, get_deck_list, get_user_decks}, lobby::{create_lobby, ws_handler, ws_handler_auth, ws_waiting_handler},
+    }, state,
 };
 use tower_http::cors::CorsLayer;
 
@@ -59,6 +54,7 @@ async fn main() {
         .route("/api/decks/get/{token}", get(get_user_decks))
         .route("/api/deck_list/get/{id}/{token}", get(get_deck_list))
         .route("/api/decks/delete/{id}/{token}", get(delete_deck))
+        .route("/api/decks/commander/get/img/{deck_id}/{token}", get(get_commander_img_from_deck_id))
         .route("/ws/join/{lobby_id}/{client_type}", get(ws_handler))
         .route(
             "/ws/join/{lobby_id}/{client_type}/{token}",

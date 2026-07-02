@@ -1,4 +1,5 @@
 import { getToken } from "../account/AccountManagement";
+import { WSS_URL } from "../constants";
 
 export async function deleteDeck(deckID: string): Promise<string> {
     try {
@@ -8,12 +9,18 @@ export async function deleteDeck(deckID: string): Promise<string> {
             return "No valid token in session, please log back in.";
         }
 
-        const response = await fetch(`https://127.0.0.1:3000/api/decks/delete/${encodeURIComponent(deckID)}/${encodeURIComponent(token)}`);
+        const response = await fetch(
+            `https://${WSS_URL}/api/decks/delete/${encodeURIComponent(deckID)}/${encodeURIComponent(token)}`
+        );
 
         const data = await response.json();
 
-        return data["msg"];
+        if (!response.ok) {
+            return data?.msg ?? "Failed to delete deck.";
+        }
+
+        return data?.msg ?? "Deck Deleted";
     } catch (err: any) {
-        return err;
+        return err?.message ?? "Failed to delete deck.";
     }
 }

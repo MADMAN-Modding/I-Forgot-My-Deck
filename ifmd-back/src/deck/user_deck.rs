@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 use futures::future::join_all;
 use serde_json::{Value, json};
@@ -17,15 +17,18 @@ pub struct UserDeck {
     pub name: String,
     /// Cards in the deck {id: "", count: 0}
     pub cards: String,
+    /// ID of the commander
+    pub commander: String
 }
 
 impl UserDeck {
-    pub fn new(cards: String, id: String, owner: String, name: String) -> UserDeck {
+    pub fn new(cards: String, id: String, owner: String, name: String, commander: String) -> UserDeck {
         UserDeck {
             cards,
             id,
             owner,
             name,
+            commander
         }
     }
 
@@ -35,6 +38,7 @@ impl UserDeck {
             owner: "".to_string(),
             name: "".to_string(),
             cards: "".to_string(),
+            commander: "".to_string()
         }
     }
 
@@ -76,7 +80,7 @@ impl UserDeck {
 impl Insertable for UserDeck {
     async fn insert(self, database: &sqlx::Pool<sqlx::Sqlite>) -> Result<(), anyhow::Error> {
         let mut query_builder: sqlx::QueryBuilder<sqlx::Sqlite> =
-            sqlx::QueryBuilder::new("INSERT INTO decks(id, owner, name, cards) VALUES(");
+            sqlx::QueryBuilder::new("INSERT INTO decks(id, owner, name, cards, commander) VALUES(");
 
         query_builder.push_bind(self.id);
         query_builder.push("1, ");
@@ -85,7 +89,9 @@ impl Insertable for UserDeck {
         query_builder.push_bind(self.name);
         query_builder.push("3, ");
         query_builder.push_bind(self.cards);
-        query_builder.push("4)");
+        query_builder.push("4, ");
+        query_builder.push_bind(self.commander);
+        query_builder.push("5)");
 
         query_builder.build().execute(database).await?;
 
@@ -96,5 +102,11 @@ impl Insertable for UserDeck {
 impl Deletable for UserDeck {
     fn delete_key(&self) -> (&str, &str) {
         ("id", &self.id)
+    }
+}
+
+impl fmt::Display for UserDeck {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}\n{}\n{}\n{}\n", self.id, self.owner, self.name, self.commander)
     }
 }
