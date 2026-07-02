@@ -1,47 +1,10 @@
-import { useEffect, useState } from "react";
-import Cookies from "js-cookie";
 import { Link } from "react-router-dom";
-import { WSS_URL } from "../constants";
 
-function NavBar() {
-    const [displayName, setDisplayName] = useState(null);
-    const [checkedAuth, setCheckedAuth] = useState(false);
+interface NavBarProps {
+    valid: boolean;
+}
 
-    async function authenticateUser() {
-        const token = Cookies.get("token");
-
-        // No cookies skip auth
-        if (!token) {
-            setCheckedAuth(true);
-            return;
-        }
-
-        try {
-            const response = await fetch(
-                `https://${WSS_URL}/api/account/token/${token}`
-            );
-
-            const data = await response.json();
-
-            if (response.ok) {
-                setDisplayName(data.displayName);
-            } else {
-                // Invalid token
-                Cookies.remove("token");
-            }
-        } catch (err) {
-            console.error(err);
-            Cookies.remove("token");
-        } finally {
-            setCheckedAuth(true);
-        }
-    }
-
-    // Run once when homepage loads
-    useEffect(() => {
-        authenticateUser();
-    }, []);
-
+export default function NavBar({ valid }: NavBarProps) {
     return (
         <>
             <div className="mt-4 flex flex-wrap bg-[#333333] text-white w-2/3 m-auto rounded-2xl *:hover:bg-(--main-color) *:transition *:duration-400 *:rounded-xl *:m-auto *:pl-1 *:pr-1">
@@ -55,7 +18,7 @@ function NavBar() {
                 </Link>
 
 
-                {checkedAuth && displayName ? (
+                {valid ? (
                     <>
                         <Link to="/deck/create">Create Deck</Link>
 
@@ -68,29 +31,7 @@ function NavBar() {
 
                     </>
                 )}
-
-
-                {/* Auth area */}
-                <>
-                    {checkedAuth && displayName ? (
-                        <>
-                        <span className="cursor-default">
-                            {displayName}
-                        </span>
-
-                        <button className="pl-1" onClick={() => {Cookies.remove("token"); window.location.reload()}}>Logout</button>
-                        </>
-                    ) : (
-                        <div>
-                            <Link to="/account/auth/">Login</Link>
-                            &nbsp;&amp;&nbsp;
-                            <Link to="/account/create">Signup</Link>
-                        </div>
-                    )}
-                </>
             </div>
         </>
     );
 }
-
-export default NavBar;

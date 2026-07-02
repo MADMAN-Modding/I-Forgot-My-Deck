@@ -33,7 +33,7 @@ export function ViewDeck({ deck, showNav = true }: ViewDeckProps) {
     return (
         <>
             {showNav ?
-                <NavBar /> : <></>}
+                <NavBar valid={true}/> : <></>}
             <div className="*:text-white bg-[rgb(51,51,51)] rounded-4xl w-7/8 m-auto mt-5 grid grid-cols-3 *:text-sm">
                 {deck && deck.cards.length > 0 && (
                     <>
@@ -150,7 +150,7 @@ export function ViewUserDecks() {
 
     return (
         <>
-            <NavBar />
+            <NavBar valid={true} />
             <h1 className="text-white text-center text-5xl mt-5">Your Decks</h1>
 
             <div className="m-auto mt-70 bg-[#333333] w-fit p-3 align-middle rounded-2xl justify-center flex flex-wrap grid-cols-3 gap-2">
