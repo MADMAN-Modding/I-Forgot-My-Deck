@@ -131,13 +131,29 @@ async fn handle_waiting_socket(
         } => (waiting_tx, is_creator),
         LobbyCheck::Started => {
             let (mut sender, _) = stream.split();
-            let _ = sender
-                .send(Message::Text(
-                    json!({"type": "rejected", "reason": "game_started"})
-                        .to_string()
-                        .into(),
-                ))
-                .await;
+            let reject = {
+                let ls = state.lobby_states.lock().unwrap();
+                match ls.get(&lobby_id) {
+                    Some(lobby) if lobby.started => !lobby.allowed_tokens.contains(&token),
+                    _ => true,
+                }
+            };
+
+            if reject {
+                let _ = sender
+                    .send(Message::Text(
+                        json!({"type": "rejected", "reason": "game_started"})
+                            .to_string()
+                            .into(),
+                    ))
+                    .await;
+            } else {
+                let _ = sender
+                    .send(Message::Text(
+                        json!({"type": "game_started"}).to_string().into(),
+                    ))
+                    .await;
+            }
             return;
         }
         LobbyCheck::NotFound => {
@@ -461,7 +477,8 @@ async fn handle_socket<T>(
                     ))
                     .await;
 
-                let msg = json!({"type": "state_restore", "payload": saved_state.payload}).to_string();
+                let msg =
+                    json!({"type": "state_restore", "payload": saved_state.payload}).to_string();
                 if sender.send(Message::Text(msg.into())).await.is_err() {
                     if table_count_incremented {
                         let mut ls = state.lobby_states.lock().unwrap();
