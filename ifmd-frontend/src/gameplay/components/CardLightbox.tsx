@@ -18,13 +18,13 @@ export function CardLightbox({ src, alt, onClose }: CardLightboxProps) {
 
     return (
         <div
-            className="fixed inset-0 bg-black/80 z-[1000] flex items-center justify-center"
+            className="fixed inset-0 bg-black/80 z-1000 flex items-center justify-center"
             onClick={onClose}
         >
             <img
                 src={src}
                 alt={alt}
-                className="max-h-[90vh] max-w-[90vw] rounded-2xl shadow-2xl"
+                className="max-h-[90vh] max-w-[90vw] rounded-3xl shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
                 draggable={false}
             />

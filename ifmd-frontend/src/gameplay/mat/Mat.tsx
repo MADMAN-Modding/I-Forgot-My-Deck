@@ -2451,11 +2451,12 @@ export function Mat() {
                 />
             )}
 
+            {/* Hovering Preview */}
             {handHoverPreview && !handDragVisual && !contextMenu && (
                 <img
                     src={cardImageUrl(handHoverPreview.card)}
                     alt=""
-                    className="fixed pointer-events-none rounded-xl shadow-2xl z-40"
+                    className="fixed pointer-events-none rounded-2xl shadow-2xl z-40"
                     style={{
                         left: handHoverPreview.left + handHoverPreview.width / 2,
                         top: handHoverPreview.top + handHoverPreview.height / 2 - (handHoverPreview.expanded ? 34 : 0),
@@ -2467,6 +2468,7 @@ export function Mat() {
                 />
             )}
 
+            {/* Zone Drag */}
             {zoneDragVisual && (
                 <img
                     src={cardImageUrl(zoneDragVisual.card)}
